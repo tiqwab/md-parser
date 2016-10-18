@@ -17,4 +17,21 @@ anyChar   = (any character but newline)
 Hi,
 I am Taro.
 
+- Alice
+- Bob
+- Chris
+
 Nice to meet you.
+
+---
+
+<p>Hi, 
+I am Taro.</p>
+
+<ul>
+<li>Alice</li>
+<li>Bob</li>
+<li>Chris</li>
+</ul>
+
+<p>Nice to meet you.</p>
