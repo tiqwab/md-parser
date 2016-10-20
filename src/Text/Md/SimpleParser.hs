@@ -14,7 +14,7 @@ pDocument = do x <- pParagraph
                y <- P.optionMaybe (pNewLine *> pDocument)
                case y of
                  Nothing -> return [doParse x]
-                 Just z  -> return ((doParse x) : z)
+                 Just z  -> return (doParse x : z)
   where doParse = parseBlock . unlines
 
 pParagraph = P.many1 pLine
@@ -34,7 +34,7 @@ parseBlock input = case P.parse pBlock "" input of
                      Right r -> r
   where pBlock =  P.try pHead
               <|> P.try pBorder
-              <|> P.try pList
+              <|> P.try pLists
 
 pHead = do hs <- countH <$> P.many1 (P.char '#')
            x <- P.many1 (P.noneOf "\n")
@@ -47,12 +47,37 @@ pBorder = do bcount <- countB <$> P.many (P.char '-' <* P.many pSpaces)
              if bcount >= 3 then return "<hr/>" else fail "this is not border"
   where countB = length
 
-pList = do xs <- P.many1 pListItem
-           let items =  foldr1 (++) . map (\x -> "<li>" ++ x ++ "</li>") $ xs
-           return $ "<ul>" ++ items ++ "</ul>"
-  where pListItem = do P.char '-'
-                       P.space
-                       pLine
+pLists = (\x -> "<ul>" ++ x ++ "</ul>") <$> pList (-1)
+
+pList n = do first  <- P.optionMaybe pListItem
+             second <- P.optionMaybe (P.try (P.lookAhead pListItem))
+             case first of
+               Nothing -- come here when this block is not list
+                 -> fail "pList"
+               Just (firstItem, firstLevel)
+                 -> case second of
+                      Nothing
+                        -> return $ "<li>" ++ firstItem ++ "</li>" ++ concat (replicate firstLevel "</ul></li>")
+                      Just (secondItem, secondLevel)
+                        | secondLevel == firstLevel ->
+                          do x <- pList secondLevel
+                             return $ "<li>" ++ firstItem ++ "</li>" ++ x
+                        | secondLevel > firstLevel ->
+                          do x <- pList secondLevel
+                             return $ "<li>" ++ firstItem ++ "<ul>" ++ x
+                        | otherwise ->
+                          do x <- pList secondLevel
+                             return $ "<li>" ++ firstItem ++ "</li>" ++ "</ul></li>" ++ x
+  where
+    pListItem = do actualN <- countN pSpaces
+                   P.char '-'
+                   P.space
+                   item <- pLine
+                   return (item, calcLevel actualN)
+    countN p = do xs <- P.many p
+                  return $ length xs
+    calcLevel n = n `div` indent
+    indent = 2
 
 {- Utils -}
 
@@ -85,4 +110,5 @@ parseMd input = let parsed = P.parse pDocument "" (preProcess input)
 parseMdFile :: FilePath -> IO String
 parseMdFile file = withFile file ReadMode $ \handle -> do
   contents <- hGetContents handle
+  putStrLn contents
   return (parseMd contents)
