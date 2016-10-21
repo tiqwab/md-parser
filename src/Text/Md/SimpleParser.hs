@@ -79,6 +79,18 @@ pList n = do first  <- P.optionMaybe pListItem
     calcLevel n = n `div` indent
     indent = 2
 
+{- Parse span tags -}
+-- Is it good way to parse again?
+-- How to parse remain input?
+parseSpan input = case P.parse pSpan "" input of
+                     Left  l -> input
+                     Right r -> r
+  where pSpan =  P.chainl1 (P.try pEmphasis <|> pLine) (pure (++))
+
+pEmphasis = do plain <- P.manyTill P.anyChar (P.try (P.string "**"))
+               em    <- P.manyTill P.anyChar (P.try (P.string "**"))
+               return $ plain ++ "<strong>" ++ em ++ "</strong>"
+
 {- Utils -}
 
 isBlankChar :: Char -> Bool

@@ -5,9 +5,12 @@
 - いくつかのタグでMarkdown仕様上では表記法が複数存在するが、省略しているものがある。
   - border: '-'のみ
   - list: '-'のみ
+  - emphasis: '\*'のみ
 - ブロックタブの一部でうまく改行を処理できない(致命的)
   - list
   - code
+- インラインレベルのパースで「残りのstring全てのパース」というのをどう実装するかが難しい。
+  - 基本的にnewlineで見れると思っていたけど、段落中でもnewlineを使用しているので難しい場面が多い。
 
 document  = paragraph, {(emptyLine, paragraph)}
 paragraph = line, {line}
