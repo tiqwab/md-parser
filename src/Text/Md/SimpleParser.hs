@@ -126,7 +126,7 @@ parseMd :: String -> String
 parseMd input = let parsed = P.parse pDocument "" (preProcess input)
                 in case parsed of
                   Left  e      -> show e
-                  Right output -> show output
+                  Right output -> foldl (\acc text -> acc ++ text ++ "\n") "" output
 
 -- Parse Markdown in a file to HTML string.
 parseMdFile :: FilePath -> IO String
