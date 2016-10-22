@@ -32,8 +32,8 @@ pSpaces  = P.char ' ' <|> P.char '\t'
 
 -- Is it good way to parse again?
 parseBlock input = case P.parse pBlock "" input of
-                     Left  l -> "<p>" ++ trim (parseSpan input) ++ "</p>"
-                     Right r -> trim (parseSpan r)
+                     Left  l -> "<p>" ++ trim (parseInline input) ++ "</p>"
+                     Right r -> trim (parseInline r)
   where pBlock =  P.try pHead
               <|> P.try pBorder
               <|> P.try pLists
@@ -81,13 +81,13 @@ pList n = do first  <- P.optionMaybe pListItem
     calcLevel n = n `div` indent
     indent = 2
 
-{- Parse span tags -}
+{- Parse inline tags -}
 -- Is it good way to parse again?
 -- How to parse remain input?
-parseSpan input = foldl (\acc p -> pSpan p acc) input [applyEm, applyLink]
-  where pSpan p target = case P.parse p "" (target ++ "\n") of
-                         Left  l -> input
-                         Right r -> r
+parseInline input = foldl (\acc p -> pInline p acc) input [applyEm, applyLink]
+  where pInline p target = case P.parse p "" (target ++ "\n") of
+                             Left  l -> input
+                             Right r -> r
         applyEm = P.chainl1 (P.try pEmphasis <|> pLine) (pure (++))
         applyLink = P.chainl1 (P.try pLink <|> pLine) (pure (++))
 

@@ -1,6 +1,6 @@
 ### EBNF
 
-- とりあえず改行コードは`\n`だけ考える。前処理で統一されるよう変換もできるので。
+- とりあえず改行コードは`\n`だけ考える。前処理で統一されるよう変換もできるはずなので。
 - 各行の末尾にnewlineがあることが前提になっている。
 - いくつかのタグでMarkdown仕様上では表記法が複数存在するが、省略しているものがある。
   - border: '-'のみ
@@ -10,7 +10,7 @@
   - list
   - code
 - インラインレベルのパースで「残りのstring全てのパース」というのをどう実装するかが難しい。
-  - 基本的にnewlineで見れると思っていたけど、段落中でもnewlineを使用しているので難しい場面が多い。
+  - 基本的にnewlineで見れると思っていたけど、段落中でもnewlineを使用しているので判断の難しい場面が多い。
 
 document  = paragraph, {(emptyLine, paragraph)}
 paragraph = line, {line}
@@ -27,27 +27,3 @@ border    = ("-", {spaces}, "-", {spaces}, "-"), {("-" | spaces)}, newline
 list      = listItem, {listItem}
 listVal   = {spaces}, (anyChar but "-"), {anyChar}
 listItem  = {spaces}, "-", spaces, (listVal, newline), {(listVal, newline)}
-
----
-
-Hi,
-I am Taro.
-
-- Alice
-- Bob
-- Chris
-
-Nice to meet you.
-
----
-
-<p>Hi,
-I am Taro.</p>
-
-<ul>
-<li>Alice</li>
-<li>Bob</li>
-<li>Chris</li>
-</ul>
-
-<p>Nice to meet you.</p>
