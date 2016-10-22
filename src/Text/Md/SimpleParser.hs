@@ -1,8 +1,10 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Text.Md.SimpleParser
 where
 
+import           Debug.Trace
 import           System.IO
 import           Text.Parsec                   (Parsec, ParsecT, (<|>))
 import qualified Text.Parsec                   as P
@@ -30,8 +32,8 @@ pSpaces  = P.char ' ' <|> P.char '\t'
 
 -- Is it good way to parse again?
 parseBlock input = case P.parse pBlock "" input of
-                     Left  l -> "<p>" ++ trim input ++ "</p>"
-                     Right r -> r
+                     Left  l -> "<p>" ++ trim (parseSpan input) ++ "</p>"
+                     Right r -> trim (parseSpan r)
   where pBlock =  P.try pHead
               <|> P.try pBorder
               <|> P.try pLists
@@ -82,14 +84,22 @@ pList n = do first  <- P.optionMaybe pListItem
 {- Parse span tags -}
 -- Is it good way to parse again?
 -- How to parse remain input?
-parseSpan input = case P.parse pSpan "" input of
-                     Left  l -> input
-                     Right r -> r
-  where pSpan =  P.chainl1 (P.try pEmphasis <|> pLine) (pure (++))
+parseSpan input = foldl (\acc p -> pSpan p acc) input [applyEm, applyLink]
+  where pSpan p target = case P.parse p "" (target ++ "\n") of
+                         Left  l -> input
+                         Right r -> r
+        applyEm = P.chainl1 (P.try pEmphasis <|> pLine) (pure (++))
+        applyLink = P.chainl1 (P.try pLink <|> pLine) (pure (++))
 
 pEmphasis = do plain <- P.manyTill P.anyChar (P.try (P.string "**"))
                em    <- P.manyTill P.anyChar (P.try (P.string "**"))
                return $ plain ++ "<strong>" ++ em ++ "</strong>"
+
+pLink = do plain <- P.manyTill P.anyChar (P.try (P.string "["))
+           title <- P.manyTill P.anyChar (P.try (P.string "]"))
+           P.spaces *> P.char '('
+           link  <- P.manyTill P.anyChar (P.try (P.string ")"))
+           return $ plain ++ "<a href=\"" ++ link ++ "\">" ++ title ++ "</a>"
 
 {- Utils -}
 
