@@ -15,8 +15,9 @@ import qualified Text.ParserCombinators.Parsec as P hiding (try)
 data Document = Document [Block]
   deriving (Show, Eq)
 
-data Block = Paragraph [Inline]
-  deriving (Show, Eq)
+data Block = Header Int [Inline]
+           | Paragraph [Inline]
+           deriving (Show, Eq)
 
 data Inline = Str String
   deriving (Show, Eq)
@@ -30,13 +31,22 @@ instance ReadMd Document where
               return $ Document blocks
 
 instance ReadMd Block where
-  parser = P.choice [ pParagraph
+  parser = P.choice [ pHeader
+                    , pParagraph
                     ]
            <?> "block"
 
-pParagraph = do inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
-                blanklines
-                return $ Paragraph inlines
+pHeader = P.try $ do
+  P.string "###"
+  skipSpaces
+  inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
+  blanklines
+  return $ Header 3 inlines
+
+pParagraph = P.try $ do
+  inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
+  blanklines
+  return $ Paragraph inlines
 
 instance ReadMd Inline where
   parser = do str <- P.many1 P.letter
@@ -49,7 +59,8 @@ instance WriteMd Document where
   writeMd (Document blocks) = "<div>" ++ concatMap writeMd blocks ++ "</div>"
 
 instance WriteMd Block where
-  writeMd (Paragraph inlines) = "<p>" ++ concatMap writeMd inlines ++ "</p>"
+  writeMd (Header level inlines) = "<h3>" ++ concatMap writeMd inlines ++ "</h3>"
+  writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where
   writeMd (Str str) = str
