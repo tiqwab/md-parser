@@ -6,7 +6,9 @@ where
 
 import           Debug.Trace
 import           System.IO
-import           Text.Parsec                   (Parsec, ParsecT, Stream, (<|>))
+import           Text.Md.ParseUtils
+import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
+                                                (<|>))
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
@@ -20,15 +22,21 @@ data Inline = Str String
   deriving (Show, Eq)
 
 class ReadMd a where
-  parser :: (Stream s m Char) => ParsecT s st m a
+  parser :: Parsec String () a
+  -- parser :: (Stream s m Char) => ParsecT s () Identity a
 
 instance ReadMd Document where
   parser = do blocks <- P.manyTill parser P.eof
               return $ Document blocks
 
 instance ReadMd Block where
-  parser = do inlines <- P.many1 parser
-              return $ Paragraph inlines
+  parser = P.choice [ pParagraph
+                    ]
+           <?> "block"
+
+pParagraph = do inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
+                blanklines
+                return $ Paragraph inlines
 
 instance ReadMd Inline where
   parser = do str <- P.many1 P.letter
