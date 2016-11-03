@@ -37,11 +37,11 @@ instance ReadMd Block where
            <?> "block"
 
 pHeader = P.try $ do
-  P.string "###"
+  level <- length <$> P.many1 (P.char '#')
   skipSpaces
   inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
   blanklines
-  return $ Header 3 inlines
+  return $ Header level inlines
 
 pParagraph = P.try $ do
   inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
@@ -49,7 +49,7 @@ pParagraph = P.try $ do
   return $ Paragraph inlines
 
 instance ReadMd Inline where
-  parser = do str <- P.many1 P.letter
+  parser = do str <- P.many1 P.alphaNum
               return $ Str str
 
 class WriteMd a where
@@ -59,7 +59,7 @@ instance WriteMd Document where
   writeMd (Document blocks) = "<div>" ++ concatMap writeMd blocks ++ "</div>"
 
 instance WriteMd Block where
-  writeMd (Header level inlines) = "<h3>" ++ concatMap writeMd inlines ++ "</h3>"
+  writeMd (Header level inlines) = "<h" ++ show level ++ ">" ++ concatMap writeMd inlines ++ "</h" ++ show level ++ ">"
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where
