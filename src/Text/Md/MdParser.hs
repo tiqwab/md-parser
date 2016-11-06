@@ -19,7 +19,8 @@ data Block = Header Int [Inline]
            | Paragraph [Inline]
            deriving (Show, Eq)
 
-data Inline = Strong String
+data Inline = SoftBreak
+            | Strong String
             | Str String
             deriving (Show, Eq)
 
@@ -45,15 +46,21 @@ pHeader = P.try $ do
   return $ Header level inlines
 
 pParagraph = P.try $ do
-  inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
+  -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
+  inlines <- P.many1 parser
   blanklines
   return $ Paragraph inlines
 
 instance ReadMd Inline where
-  parser = P.choice [ pStrong
+  parser = P.choice [ pSoftBreak
+                    , pStrong
                     , pStr
                     ]
            <?> "inline"
+
+pSoftBreak = P.try $ do
+  blankline >> P.notFollowedBy blankline
+  return SoftBreak
 
 pStrong = P.try $ do
   P.string "**"
@@ -76,8 +83,9 @@ instance WriteMd Block where
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where
+  writeMd SoftBreak    = " "
   writeMd (Strong str) = "<strong>" ++ str ++ "</strong>"
-  writeMd (Str str) = str
+  writeMd (Str str)    = str
 
 readMarkdown :: String -> Document
 readMarkdown input = case P.parse parser "" input of
