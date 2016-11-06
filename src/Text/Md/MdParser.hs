@@ -19,7 +19,9 @@ data Block = Header Int [Inline]
            | Paragraph [Inline]
            deriving (Show, Eq)
 
-data Inline = SoftBreak
+data Inline = LineBreak
+            | SoftBreak
+            | Space
             | Strong String
             | Str String
             deriving (Show, Eq)
@@ -52,15 +54,25 @@ pParagraph = P.try $ do
   return $ Paragraph inlines
 
 instance ReadMd Inline where
-  parser = P.choice [ pSoftBreak
+  parser = P.choice [ pLineBreak
+                    , pSoftBreak
+                    , pSpace
                     , pStrong
                     , pStr
                     ]
            <?> "inline"
 
+pLineBreak = P.try $ do
+  P.count 2 (P.char ' ') >> blankline
+  return LineBreak
+
 pSoftBreak = P.try $ do
   blankline >> P.notFollowedBy blankline
   return SoftBreak
+
+pSpace = P.try $ do
+  spaceChar >> skipSpaces
+  return Space
 
 pStrong = P.try $ do
   P.string "**"
@@ -83,7 +95,9 @@ instance WriteMd Block where
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where
+  writeMd LineBreak    = "<br />"
   writeMd SoftBreak    = " "
+  writeMd Space        = " "
   writeMd (Strong str) = "<strong>" ++ str ++ "</strong>"
   writeMd (Str str)    = str
 
