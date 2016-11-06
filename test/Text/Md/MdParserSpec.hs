@@ -14,5 +14,22 @@ main = hspec spec
 spec :: Spec
 spec = do
   describe "parseMarkdown" $ do
-    it "parses just string to paragraph" $
-      parseMarkdown "foobar\n\n" `shouldBe` "<div><p>foobar</p></div>"
+    it "parses to paragraph" $
+      parseMarkdown "foobar\n\n"
+      `shouldBe`
+      "<div><p>foobar</p></div>"
+
+    it "parses to header" $ do
+      parseMarkdown "# header1\n\npara1\n\n##   header2\n\n### header3\n\n"
+      `shouldBe`
+      "<div><h1>header1</h1><p>para1</p><h2>header2</h2><h3>header3</h3></div>"
+
+    it "parses to strong" $ do
+      parseMarkdown "this is **strong**\n\n"
+      `shouldBe`
+      "<div><p>this is <strong>strong</strong></p></div>"
+
+    it "parses to linebreak and softbreak in paragraph" $ do
+      parseMarkdown "Before break  \nafter break\nand just space\n\n"
+      `shouldBe`
+      "<div><p>Before break<br />after break and just space</p></div>"
