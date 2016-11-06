@@ -16,11 +16,14 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib
+                     , Text.Md.MdParser
+                     , Text.Md.ParseUtils
   build-depends:       base >= 4.7 && < 5
                      , text
                      , bytestring
                      , parsec
                      , transformers
+                     , hspec
   default-language:    Haskell2010
 
 executable md-parser-exe
@@ -36,6 +39,7 @@ test-suite md-parser-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
+                     , hspec
                      , md-parser
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
