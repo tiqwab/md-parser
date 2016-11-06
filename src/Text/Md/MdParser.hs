@@ -19,8 +19,9 @@ data Block = Header Int [Inline]
            | Paragraph [Inline]
            deriving (Show, Eq)
 
-data Inline = Str String
-  deriving (Show, Eq)
+data Inline = Strong String
+            | Str String
+            deriving (Show, Eq)
 
 class ReadMd a where
   parser :: Parsec String () a
@@ -49,8 +50,20 @@ pParagraph = P.try $ do
   return $ Paragraph inlines
 
 instance ReadMd Inline where
-  parser = do str <- P.many1 P.alphaNum
-              return $ Str str
+  parser = P.choice [ pStrong
+                    , pStr
+                    ]
+           <?> "inline"
+
+pStrong = P.try $ do
+  P.string "**"
+  inlines <- P.many1 P.alphaNum
+  P.string "**"
+  return $ Strong inlines
+
+pStr = P.try $ do
+  str <- P.many1 P.alphaNum
+  return $ Str str
 
 class WriteMd a where
   writeMd :: a -> String
@@ -63,6 +76,7 @@ instance WriteMd Block where
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where
+  writeMd (Strong str) = "<strong>" ++ str ++ "</strong>"
   writeMd (Str str) = str
 
 readMarkdown :: String -> Document
