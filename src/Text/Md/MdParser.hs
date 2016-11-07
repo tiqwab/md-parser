@@ -22,7 +22,7 @@ data Block = Header Int [Inline]
 data Inline = LineBreak
             | SoftBreak
             | Space
-            | Strong String
+            | Strong [Inline]
             | Str String
             deriving (Show, Eq)
 
@@ -59,6 +59,7 @@ instance ReadMd Inline where
                     , pSpace
                     , pStrong
                     , pStr
+                    , pMark
                     ]
            <?> "inline"
 
@@ -76,13 +77,21 @@ pSpace = P.try $ do
 
 pStrong = P.try $ do
   P.string "**"
-  inlines <- P.many1 P.alphaNum
+  -- inlines <- P.many1 parser
+  inlines <- P.many1 (P.notFollowedBy (P.string "**") >> parser)
   P.string "**"
   return $ Strong inlines
 
 pStr = P.try $ do
+  -- str <- P.many1 (P.notFollowedBy pMark >> P.anyChar)
   str <- P.many1 P.alphaNum
   return $ Str str
+
+-- Cannot handle escape yet. `lookAhead` will work for it.
+pMark = P.try $ do
+  P.notFollowedBy $ P.choice [spaceChar, blankline]
+  c <- P.anyChar
+  return $ Str [c]
 
 class WriteMd a where
   writeMd :: a -> String
@@ -95,11 +104,11 @@ instance WriteMd Block where
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where
-  writeMd LineBreak    = "<br />"
-  writeMd SoftBreak    = " "
-  writeMd Space        = " "
-  writeMd (Strong str) = "<strong>" ++ str ++ "</strong>"
-  writeMd (Str str)    = str
+  writeMd LineBreak        = "<br />"
+  writeMd SoftBreak        = " "
+  writeMd Space            = " "
+  writeMd (Strong inlines) = "<strong>" ++ concatMap writeMd inlines ++ "</strong>"
+  writeMd (Str str)        = str
 
 readMarkdown :: String -> Document
 readMarkdown input = case P.parse parser "" input of
