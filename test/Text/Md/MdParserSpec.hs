@@ -37,3 +37,13 @@ spec = do
       parseMarkdown "**abc\n\n" `shouldBe` "<div><p>**abc</p></div>"
       parseMarkdown "abc**\n\n" `shouldBe` "<div><p>abc**</p></div>"
       parseMarkdown "**abc\n\n**\n\n" `shouldBe` "<div><p>**abc</p><p>**</p></div>"
+
+    it "parse html inline elements and just show original text" $ do
+      parseMarkdown "this is framed by <span class=\"cl1\">span</span> tag.\n\n"
+      `shouldBe`
+      "<div><p>this is framed by <span class=\"cl1\">span</span> tag.</p></div>"
+
+    it "accepts markdown literals inside html inline elements" $ do
+      parseMarkdown "this is framed by <span class=\"cl1\">not span but **span**</span> tag.\n\n"
+      `shouldBe`
+      "<div><p>this is framed by <span class=\"cl1\">not span but <strong>span</strong></span> tag.</p></div>"

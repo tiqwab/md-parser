@@ -12,13 +12,16 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
+-- TODO: escape, html
 data Document = Document [Block]
   deriving (Show, Eq)
 
+-- TODO: list, blockquotes, codeblock, border
 data Block = Header Int [Inline]
            | Paragraph [Inline]
            deriving (Show, Eq)
 
+-- TODO: cite, link, code, (math)
 data Inline = LineBreak
             | SoftBreak
             | Space
