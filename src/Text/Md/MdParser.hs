@@ -7,6 +7,8 @@ where
 import           Debug.Trace
 import           System.IO
 import           Text.Md.ParseUtils
+import           Text.Md.HtmlParser
+import qualified Text.HTML.TagSoup as TS
 import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
@@ -18,6 +20,7 @@ data Document = Document [Block]
 
 -- TODO: list, blockquotes, codeblock, border
 data Block = Header Int [Inline]
+           | HtmlBlock String
            | Paragraph [Inline]
            deriving (Show, Eq)
 
@@ -39,9 +42,16 @@ instance ReadMd Document where
 
 instance ReadMd Block where
   parser = P.choice [ pHeader
+                    , pHtmlBlock
                     , pParagraph
                     ]
            <?> "block"
+
+pHtmlBlock = P.try $ do
+  blockElem <- pBlockElement
+  skipSpaces
+  blanklines
+  return $ HtmlBlock blockElem
 
 pHeader = P.try $ do
   level <- length <$> P.many1 (P.char '#')
@@ -104,6 +114,7 @@ instance WriteMd Document where
 
 instance WriteMd Block where
   writeMd (Header level inlines) = "<h" ++ show level ++ ">" ++ concatMap writeMd inlines ++ "</h" ++ show level ++ ">"
+  writeMd (HtmlBlock str)        = str
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where

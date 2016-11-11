@@ -47,3 +47,9 @@ spec = do
       parseMarkdown "this is framed by <span class=\"cl1\">not span but **span**</span> tag.\n\n"
       `shouldBe`
       "<div><p>this is framed by <span class=\"cl1\">not span but <strong>span</strong></span> tag.</p></div>"
+
+    -- should parse markdown literals in html block elements? -> no, for now
+    -- should perform html escaping
+    it "parse html block elements to blocks without framing by 'p' tag" $ do
+      parseMarkdown "line1\n\n<div id=\"header\">line2</div>\n\nline3\n\n" `shouldBe` "<div><p>line1</p><div id=\"header\">line2</div><p>line3</p></div>"
+      parseMarkdown "line1\n\n<div><ul><li>list1</li><li>list2</li>\n\n</ul></div>\n\nline3\n\n" `shouldBe` "<div><p>line1</p><div><ul><li>list1</li><li>list2</li>\n\n</ul></div><p>line3</p></div>"
