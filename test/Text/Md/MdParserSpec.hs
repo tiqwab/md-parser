@@ -48,6 +48,10 @@ spec = do
       `shouldBe`
       "<div><p>this is framed by <span class=\"cl1\">not span but <strong>span</strong></span> tag.</p></div>"
 
+    it "escape markdown literals" $ do
+      parseMarkdown "Is this \\*\\*escaped?\\*\\*.\n\n" `shouldBe` "<div><p>Is this **escaped?**.</p></div>"
+      parseMarkdown "Is this <span>\\*\\*escaped?\\*\\*.</span>\n\n" `shouldBe` "<div><p>Is this <span>**escaped?**.</span></p></div>"
+
     -- should parse markdown literals in html block elements? -> no, for now
     -- should perform html escaping
     it "parse html block elements to blocks without framing by 'p' tag" $ do

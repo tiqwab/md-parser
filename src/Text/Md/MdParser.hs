@@ -14,7 +14,7 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
--- TODO: escape, html
+-- TODO: escape of html symbols('<', '>', '&', '"')
 data Document = Document [Block]
   deriving (Show, Eq)
 
@@ -100,11 +100,13 @@ pStr = P.try $ do
   str <- P.many1 P.alphaNum
   return $ Str str
 
--- Cannot handle escape yet. `lookAhead` will work for it.
 pMark = P.try $ do
   P.notFollowedBy $ P.choice [spaceChar, blankline]
-  c <- P.anyChar
+  c <- P.try (P.char '\\' *> P.oneOf mdSymbols)
+      <|> P.anyChar
   return $ Str [c]
+
+mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!']
 
 class WriteMd a where
   writeMd :: a -> String
@@ -132,5 +134,6 @@ readMarkdown input = case P.parse parser "" input of
 writeMarkdown :: Document -> String
 writeMarkdown doc = writeMd doc
 
+-- | Parse and convert markdown to html
 parseMarkdown :: String -> String
 parseMarkdown = writeMarkdown . readMarkdown
