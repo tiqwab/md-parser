@@ -18,6 +18,7 @@ import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
 -- parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
 -- without considering whether the top tag is block element or not
+-- assume that content of the block element is escaped.
 pBlockElement :: Parsec String () String
 pBlockElement = P.try $ do
   (tagStr, tagMaybe) <- pHtmlTag
