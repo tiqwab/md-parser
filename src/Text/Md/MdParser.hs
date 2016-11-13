@@ -6,6 +6,7 @@ where
 
 import           Debug.Trace
 import           System.IO
+import           Text.Md.MdParserDef
 import           Text.Md.ParseUtils
 import           Text.Md.HtmlParser
 import qualified Text.HTML.TagSoup as TS
@@ -13,28 +14,6 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
-
--- TODO: escape of html symbols('<', '>', '&', '"')
-data Document = Document [Block]
-  deriving (Show, Eq)
-
--- TODO: list, blockquotes, codeblock, border
-data Block = Header Int [Inline]
-           | HtmlBlock String
-           | Paragraph [Inline]
-           deriving (Show, Eq)
-
--- TODO: cite, link, code, (math)
-data Inline = LineBreak
-            | SoftBreak
-            | Space
-            | Strong [Inline]
-            | Str String
-            deriving (Show, Eq)
-
-class ReadMd a where
-  parser :: Parsec String () a
-  -- parser :: (Stream s m Char) => ParsecT s () Identity a
 
 instance ReadMd Document where
   parser = do blocks <- P.manyTill parser P.eof
@@ -47,11 +26,7 @@ instance ReadMd Block where
                     ]
            <?> "block"
 
-pHtmlBlock = P.try $ do
-  blockElem <- pBlockElement
-  skipSpaces
-  blanklines
-  return $ HtmlBlock blockElem
+pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklines
 
 pHeader = P.try $ do
   level <- length <$> P.many1 (P.char '#')
@@ -71,7 +46,9 @@ instance ReadMd Inline where
                     , pSoftBreak
                     , pSpace
                     , pStrong
+                    , pInlineHtml
                     , pStr
+                    , pHtmlEscape
                     , pMark
                     ]
            <?> "inline"
@@ -100,23 +77,25 @@ pStr = P.try $ do
   str <- P.many1 P.alphaNum
   return $ Str str
 
+pInlineHtml = P.try $ do
+  let context = ParseContext parser :: ParseContext Inline
+  pInlineElement context
+
 pMark = P.try $ do
   P.notFollowedBy $ P.choice [spaceChar, blankline]
-  c <- P.try (P.char '\\' *> P.oneOf mdSymbols)
-      <|> P.anyChar
-  return $ Str [c]
+  let toStr = flip (:) []
+  str <- toStr <$> P.try (P.char '\\' *> P.oneOf mdSymbols)
+        <|> toStr <$> P.anyChar
+  return $ Str str
 
 mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!']
-
-class WriteMd a where
-  writeMd :: a -> String
 
 instance WriteMd Document where
   writeMd (Document blocks) = "<div>" ++ concatMap writeMd blocks ++ "</div>"
 
 instance WriteMd Block where
   writeMd (Header level inlines) = "<h" ++ show level ++ ">" ++ concatMap writeMd inlines ++ "</h" ++ show level ++ ">"
-  writeMd (HtmlBlock str)        = str
+  writeMd (BlockHtml str)        = str
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where
@@ -124,6 +103,7 @@ instance WriteMd Inline where
   writeMd SoftBreak        = " "
   writeMd Space            = " "
   writeMd (Strong inlines) = "<strong>" ++ concatMap writeMd inlines ++ "</strong>"
+  writeMd (InlineHtml inlines) = concatMap writeMd inlines
   writeMd (Str str)        = str
 
 readMarkdown :: String -> Document

@@ -16,6 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Lib
+                     , Text.Md.MdParserDef
                      , Text.Md.MdParser
                      , Text.Md.HtmlParser
                      , Text.Md.ParseUtils
