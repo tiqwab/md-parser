@@ -122,15 +122,6 @@ pMark = P.try $ do
         <|> toStr <$> P.anyChar
   return $ Str str
 
--- TODO: escape '& ' but not like '&amp;'
-pEscape = P.try (
-  P.string    "<"  *> return (Str "&lt;")
- <|> P.string ">"  *> return (Str "&gt;")
- <|> P.string "&"  *> return (Str "&amp;")
- <|> P.string "\"" *> return (Str "&quot;")
- <?> "html-escape"
- )
-
 mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!']
 
 {-

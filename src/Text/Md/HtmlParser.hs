@@ -6,6 +6,7 @@ module Text.Md.HtmlParser (
   , pBlockElementDef
   , pBlockElement
   , pInlineElement
+  , pEscape
 )
 where
 
@@ -79,3 +80,15 @@ renderInline inlines tagStr stack context = liftM3 concatTags3 (return inlines) 
 concatTags2 a b = a ++ b
 
 concatTags3 a b c = a ++ b ++ c
+
+pEscape :: Parsec String () Inline
+pEscape = do
+  let pEscapedString        = P.choice (map (P.try . P.string . snd) escapePair)
+      escapes               = map escape escapePair
+      escape (raw, escaped) = P.string raw *> return (Str escaped)
+  isEscaped <- P.optionMaybe $ P.try $ P.lookAhead pEscapedString
+  case isEscaped of
+    Just str  -> Str <$> P.try pEscapedString
+    Nothing   -> P.try (P.choice escapes <?> "html-parser")
+
+escapePair = [("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"), ("\"", "&quot;")]
