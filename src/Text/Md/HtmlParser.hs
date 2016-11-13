@@ -6,7 +6,7 @@ module Text.Md.HtmlParser (
   , pBlockElementDef
   , pBlockElement
   , pInlineElement
-  , pEscape
+  , pHtmlEscape
 )
 where
 
@@ -81,8 +81,8 @@ concatTags2 a b = a ++ b
 
 concatTags3 a b c = a ++ b ++ c
 
-pEscape :: Parsec String () Inline
-pEscape = do
+pHtmlEscape :: Parsec String () Inline
+pHtmlEscape = do
   let pEscapedString        = P.choice (map (P.try . P.string . snd) escapePair)
       escapes               = map escape escapePair
       escape (raw, escaped) = P.string raw *> return (Str escaped)

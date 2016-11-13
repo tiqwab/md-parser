@@ -15,31 +15,6 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
-{-
--- TODO: escape of html symbols('<', '>', '&', '"')
-data Document = Document [Block]
-  deriving (Show, Eq)
-
--- TODO: list, blockquotes, codeblock, border
-data Block = Header Int [Inline]
-           | BlockHtml String
-           | Paragraph [Inline]
-           deriving (Show, Eq)
-
--- TODO: cite, link, code, (math)
-data Inline = LineBreak
-            | SoftBreak
-            | Space
-            | Strong [Inline]
-            | InlineHtml [Inline]
-            | Str String
-            deriving (Show, Eq)
-
-class ReadMd a where
-  parser :: Parsec String () a
-  -- parser :: (Stream s m Char) => ParsecT s () Identity a
--}
-
 instance ReadMd Document where
   parser = do blocks <- P.manyTill parser P.eof
               return $ Document blocks
@@ -51,13 +26,6 @@ instance ReadMd Block where
                     ]
            <?> "block"
 
-{-
-pHtmlBlock = P.try $ do
-  blockElem <- pBlockElementDef
-  skipSpaces
-  blanklines
-  return $ BlockHtml blockElem
--}
 pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklines
 
 pHeader = P.try $ do
@@ -80,7 +48,7 @@ instance ReadMd Inline where
                     , pStrong
                     , pInlineHtml
                     , pStr
-                    , pEscape
+                    , pHtmlEscape
                     , pMark
                     ]
            <?> "inline"
@@ -113,8 +81,6 @@ pInlineHtml = P.try $ do
   let context = ParseContext parser :: ParseContext Inline
   pInlineElement context
 
--- (step 1) pBlockElementに内部のmarkdown処理を行うかどうかの選択肢を与える
--- (step 2) anyCharの前にhtml escapeを行う
 pMark = P.try $ do
   P.notFollowedBy $ P.choice [spaceChar, blankline]
   let toStr = flip (:) []
@@ -123,11 +89,6 @@ pMark = P.try $ do
   return $ Str str
 
 mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!']
-
-{-
-class WriteMd a where
-  writeMd :: a -> String
--}
 
 instance WriteMd Document where
   writeMd (Document blocks) = "<div>" ++ concatMap writeMd blocks ++ "</div>"
