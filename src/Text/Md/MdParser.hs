@@ -4,6 +4,7 @@
 module Text.Md.MdParser
 where
 
+import           Control.Monad
 import           Debug.Trace
 import           System.IO
 import           Text.Md.MdParserDef
@@ -22,6 +23,7 @@ instance ReadMd Document where
 instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
+                    , pBorder
                     , pParagraph
                     ]
            <?> "block"
@@ -34,6 +36,12 @@ pHeader = P.try $ do
   inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
   blanklines
   return $ Header level inlines
+
+pBorder = P.try $ do
+  chars <- P.many1 (P.char '-' <|> P.char ' ')
+  blanklines
+  guard $ length (filter (== '-') chars) >= 3
+  return HorizontalRule
 
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
@@ -96,6 +104,7 @@ instance WriteMd Document where
 instance WriteMd Block where
   writeMd (Header level inlines) = "<h" ++ show level ++ ">" ++ concatMap writeMd inlines ++ "</h" ++ show level ++ ">"
   writeMd (BlockHtml str)        = str
+  writeMd HorizontalRule         = "<hr />"
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
 
 instance WriteMd Inline where

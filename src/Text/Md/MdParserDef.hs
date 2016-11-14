@@ -10,9 +10,10 @@ import           Text.Parsec (Parsec, ParsecT, Stream)
 data Document = Document [Block]
   deriving (Show, Eq)
 
--- TODO: list, blockquotes, codeblock, border
+-- TODO: list, blockquotes, codeblock, border, care of spaces at the head
 data Block = Header Int [Inline]
            | BlockHtml String
+           | HorizontalRule
            | Paragraph [Inline]
            deriving (Show, Eq)
 
