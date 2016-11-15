@@ -7,10 +7,10 @@ where
 import           Control.Monad
 import           Debug.Trace
 import           System.IO
+import qualified Text.HTML.TagSoup             as TS
+import           Text.Md.HtmlParser
 import           Text.Md.MdParserDef
 import           Text.Md.ParseUtils
-import           Text.Md.HtmlParser
-import qualified Text.HTML.TagSoup as TS
 import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
@@ -28,25 +28,27 @@ instance ReadMd Block where
                     ]
            <?> "block"
 
-pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklines
+blanklinesBetweenBlock = blankline *> blankline *> P.many (P.try blankline)
 
 pHeader = P.try $ do
   level <- length <$> P.many1 (P.char '#')
   skipSpaces
   inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
-  blanklines
+  blanklinesBetweenBlock
   return $ Header level inlines
 
+pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklinesBetweenBlock
+
 pBorder = P.try $ do
-  chars <- P.many1 (P.char '-' <|> P.char ' ')
-  blanklines
-  guard $ length (filter (== '-') chars) >= 3
+  chars <- P.many1 (P.char '-' <* skipSpaces)
+  blanklinesBetweenBlock
+  guard $ length chars >= 3
   return HorizontalRule
 
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
   inlines <- P.many1 parser
-  blanklines
+  blanklinesBetweenBlock
   return $ Paragraph inlines
 
 instance ReadMd Inline where

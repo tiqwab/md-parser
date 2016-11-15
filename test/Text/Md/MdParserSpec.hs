@@ -3,8 +3,8 @@ module Text.Md.MdParserSpec (
   spec,
 ) where
 
-import Text.Md.MdParser
-import Test.Hspec
+import           Test.Hspec
+import           Text.Md.MdParser
 
 -- Not necessary for automatic test discovery
 main :: IO ()

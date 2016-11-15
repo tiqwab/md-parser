@@ -88,7 +88,7 @@ pHtmlEscape = do
       escape (raw, escaped) = P.string raw *> return (Str escaped)
   isEscaped <- P.optionMaybe $ P.try $ P.lookAhead pEscapedString
   case isEscaped of
-    Just str  -> Str <$> P.try pEscapedString
-    Nothing   -> P.try (P.choice escapes <?> "html-parser")
+    Just str -> Str <$> P.try pEscapedString
+    Nothing  -> P.try (P.choice escapes <?> "html-parser")
 
 escapePair = [("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"), ("\"", "&quot;")]
