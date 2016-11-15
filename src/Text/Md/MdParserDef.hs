@@ -6,11 +6,10 @@ where
 
 import           Text.Parsec (Parsec, ParsecT, Stream)
 
--- TODO: escape of html symbols('<', '>', '&', '"')
 data Document = Document [Block]
   deriving (Show, Eq)
 
--- TODO: list, blockquotes, codeblock, border, care of spaces at the head
+-- TODO: list, blockquotes, codeblock
 data Block = Header Int [Inline]
            | BlockHtml String
            | HorizontalRule

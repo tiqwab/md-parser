@@ -27,9 +27,9 @@ data ParseContext a = ParseContext { parserText :: Parsec String () a
 pBlockElementDef :: Parsec String () Block
 pBlockElementDef = pBlockElement $ ParseContext P.anyChar
 
--- parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
--- without considering whether the top tag is block element or not
--- assume that content of the block element is escaped.
+-- Parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
+-- without considering whether the top tag is actually block element or not.
+-- Assume that contents of the block element is escaped.
 pBlockElement :: ParseContext Char -> Parsec String () Block
 pBlockElement context = P.try $ do
   (tagStr, tagMaybe) <- pHtmlTag

@@ -39,6 +39,7 @@ pHeader = P.try $ do
 
 pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklinesBetweenBlock
 
+-- TODO: Accept symbol '*' and '_' as well as '-'
 pBorder = P.try $ do
   chars <- P.many1 (P.char '-' <* skipSpaces)
   blanklinesBetweenBlock
