@@ -58,6 +58,7 @@ instance ReadMd Inline where
                     , pSoftBreak
                     , pSpace
                     , pStrong
+                    , pInlineLink
                     , pInlineHtml
                     , pStr
                     , pHtmlEscape
@@ -83,6 +84,16 @@ pStrong = P.try $ do
   inlines <- P.many1 (P.notFollowedBy (P.string "**") >> parser)
   P.string "**"
   return $ Strong inlines
+
+pInlineLink = P.try $ do
+  let pText         = P.many1 (P.notFollowedBy (P.char ']') >> P.anyChar)
+      pLinkAndTitle = do text <- P.many1 (P.notFollowedBy (P.oneOf " )") >> P.anyChar)
+                         skipSpaces
+                         title <- P.optionMaybe $ P.char '"' *> P.many (P.notFollowedBy (P.char '"') >> P.anyChar) <* P.char '"'
+                         return (text, title)
+  text          <- P.between (P.char '[') (P.char ']') pText
+  (link, title) <- P.between (P.char '(') (P.char ')') pLinkAndTitle
+  return $ InlineLink text link title
 
 pStr = P.try $ do
   -- str <- P.many1 (P.notFollowedBy pMark >> P.anyChar)
@@ -116,6 +127,8 @@ instance WriteMd Inline where
   writeMd SoftBreak        = " "
   writeMd Space            = " "
   writeMd (Strong inlines) = "<strong>" ++ concatMap writeMd inlines ++ "</strong>"
+  writeMd (InlineLink text link (Just title)) = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
+  writeMd (InlineLink text link Nothing)      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
   writeMd (InlineHtml inlines) = concatMap writeMd inlines
   writeMd (Str str)        = str
 

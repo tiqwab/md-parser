@@ -21,6 +21,7 @@ data Inline = LineBreak
             | SoftBreak
             | Space
             | Strong [Inline]
+            | InlineLink String String (Maybe String)
             | InlineHtml [Inline]
             | Str String
               deriving (Show, Eq)
