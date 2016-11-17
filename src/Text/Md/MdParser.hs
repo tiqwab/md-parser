@@ -23,7 +23,7 @@ instance ReadMd Document where
 instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
-                    , pBorder
+                    , pHorizontalRule
                     , pParagraph
                     ]
            <?> "block"
@@ -39,9 +39,10 @@ pHeader = P.try $ do
 
 pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklinesBetweenBlock
 
--- TODO: Accept symbol '*' and '_' as well as '-'
-pBorder = P.try $ do
-  chars <- P.many1 (P.char '-' <* skipSpaces)
+pHorizontalRule = P.try $ P.choice [pBorder '-', pBorder '*', pBorder '_']
+
+pBorder char = P.try $ do
+  chars <- P.many1 (P.char char <* skipSpaces)
   blanklinesBetweenBlock
   guard $ length chars >= 3
   return HorizontalRule

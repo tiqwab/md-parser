@@ -27,6 +27,7 @@ spec = do
     it "parses to horizontal rule" $ do
       parseMarkdown "foobar\n\n---\n\nfoobar\n\n" `shouldBe` "<div><p>foobar</p><hr /><p>foobar</p></div>"
       parseMarkdown "foobar\n\n- -  - \n\nfoobar\n\n" `shouldBe` "<div><p>foobar</p><hr /><p>foobar</p></div>"
+      parseMarkdown "foobar\n\n___\n\n***\n\n" `shouldBe` "<div><p>foobar</p><hr /><hr /></div>"
 
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
