@@ -15,10 +15,11 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
+import qualified Data.Map as M
 
 instance ReadMd Document where
   parser = do blocks <- P.manyTill parser P.eof
-              return $ Document blocks
+              return $ Document blocks (MetaData M.empty)
 
 instance ReadMd Block where
   parser = P.choice [ pHeader
@@ -60,6 +61,7 @@ instance ReadMd Inline where
                     , pStrong
                     , pInlineLink
                     , pInlineHtml
+                    , pReferenceLink
                     , pStr
                     , pHtmlEscape
                     , pMark
@@ -95,6 +97,17 @@ pInlineLink = P.try $ do
   (link, title) <- P.between (P.char '(') (P.char ')') pLinkAndTitle
   return $ InlineLink text link title
 
+pReferenceLink = P.try $ do
+  text  <- pEnclosed "[" "]"
+  P.optional spaceChar
+  refId <- pEnclosed "[" "]"
+  return $ ReferenceLink text refId
+
+pEnclosed begin end = P.between pBegin pEnd (P.many1 pNones)
+  where pBegin = P.string begin
+        pEnd   = P.string end
+        pNones = P.noneOf (begin ++ end)
+
 pStr = P.try $ do
   -- str <- P.many1 (P.notFollowedBy pMark >> P.anyChar)
   str <- P.many1 P.alphaNum
@@ -114,7 +127,7 @@ pMark = P.try $ do
 mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!']
 
 instance WriteMd Document where
-  writeMd (Document blocks) = "<div>" ++ concatMap writeMd blocks ++ "</div>"
+  writeMd (Document blocks metadata) = "<div>" ++ concatMap writeMd blocks ++ "</div>"
 
 instance WriteMd Block where
   writeMd (Header level inlines) = "<h" ++ show level ++ ">" ++ concatMap writeMd inlines ++ "</h" ++ show level ++ ">"
