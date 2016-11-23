@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Text.Md.HtmlParser (
-    ParseContext(..)
+    HtmlParseContext(..)
   , pBlockElementDef
   , pBlockElement
   , pInlineElement
@@ -21,16 +21,15 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
-data ParseContext a = ParseContext { parserText :: Parsec String () a
-                                   }
+data HtmlParseContext a = HtmlParseContext { parserText :: Parsec String ParseContext a }
 
-pBlockElementDef :: Parsec String () Block
-pBlockElementDef = pBlockElement $ ParseContext P.anyChar
+pBlockElementDef :: Parsec String ParseContext Block
+pBlockElementDef = pBlockElement $ HtmlParseContext P.anyChar
 
 -- Parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
 -- without considering whether the top tag is actually block element or not.
 -- Assume that contents of the block element is escaped.
-pBlockElement :: ParseContext Char -> Parsec String () Block
+pBlockElement :: HtmlParseContext Char -> Parsec String ParseContext Block
 pBlockElement context = P.try $ do
   (tagStr, tagMaybe) <- pHtmlTag
   case tagMaybe of
@@ -48,7 +47,7 @@ pBlockElementInside stack context = P.try $ do
       TS.TagComment str -> render text tagStr stack context
     Nothing  -> render text tagStr stack context
 
-pInlineElement :: ParseContext Inline -> Parsec String () Inline
+pInlineElement :: HtmlParseContext Inline -> Parsec String ParseContext Inline
 pInlineElement context = P.try $ do
   (tagStr, tagMaybe) <- pHtmlTag
   case tagMaybe of
@@ -81,7 +80,7 @@ concatTags2 a b = a ++ b
 
 concatTags3 a b c = a ++ b ++ c
 
-pHtmlEscape :: Parsec String () Inline
+pHtmlEscape :: Parsec String ParseContext Inline
 pHtmlEscape = do
   let pEscapedString        = P.choice (map (P.try . P.string . snd) escapePair)
       escapes               = map escape escapePair

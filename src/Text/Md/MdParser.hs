@@ -14,7 +14,7 @@ import           Text.Md.ParseUtils
 import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
-import qualified Text.ParserCombinators.Parsec as P hiding (try)
+import qualified Text.ParserCombinators.Parsec as P hiding (try, runParser)
 import qualified Data.Map as M
 
 instance ReadMd Document where
@@ -114,7 +114,7 @@ pStr = P.try $ do
   return $ Str str
 
 pInlineHtml = P.try $ do
-  let context = ParseContext parser :: ParseContext Inline
+  let context = HtmlParseContext parser :: HtmlParseContext Inline
   pInlineElement context
 
 pMark = P.try $ do
@@ -146,7 +146,7 @@ instance WriteMd Inline where
   writeMd (Str str)        = str
 
 readMarkdown :: String -> Document
-readMarkdown input = case P.parse parser "" input of
+readMarkdown input = case P.runParser parser defContext "" input of
                        Left  e -> error (show e) -- FIX ME
                        Right s -> s
 

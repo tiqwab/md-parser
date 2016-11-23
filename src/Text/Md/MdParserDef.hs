@@ -10,7 +10,12 @@ import qualified Data.Map as M
 data Document = Document [Block] MetaData
   deriving (Show, Eq)
 
-type RefId   = String
+data ParseContext = ParseContext { metadata :: MetaData }
+  deriving (Show, Eq)
+
+defContext = ParseContext { metadata = MetaData M.empty }
+
+type RefId    = String
 type RefLink  = String
 data MetaData = MetaData { references :: M.Map RefId RefLink }
   deriving (Show, Eq)
@@ -34,8 +39,7 @@ data Inline = LineBreak
               deriving (Show, Eq)
 
 class ReadMd a where
-  parser :: Parsec String () a
-  -- parser :: (Stream s m Char) => ParsecT s () Identity a
+  parser :: Parsec String ParseContext a
 
 class WriteMd a where
   writeMd :: a -> String
