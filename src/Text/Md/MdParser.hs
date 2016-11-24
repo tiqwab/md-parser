@@ -19,12 +19,14 @@ import qualified Data.Map as M
 
 instance ReadMd Document where
   parser = do blocks <- P.manyTill parser P.eof
-              return $ Document blocks (MetaData M.empty)
+              meta   <- metadata <$> P.getState
+              return $ Document blocks meta
 
 instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
                     , pHorizontalRule
+                    , pReference
                     , pParagraph
                     ]
            <?> "block"
@@ -47,6 +49,21 @@ pBorder char = P.try $ do
   blanklinesBetweenBlock
   guard $ length chars >= 3
   return HorizontalRule
+
+addRef refId refLink state = state { metadata = newMeta }
+  where oldMeta      = metadata state
+        newMeta      = oldMeta { references = newRefs }
+        originalRefs = references . metadata $ state
+        newRefs      = M.insert refId refLink originalRefs
+
+pReference = P.try $ do
+  refId <- pEnclosed "[" "]"
+  P.char ':'
+  skipSpaces
+  refLink <- P.many1 (P.notFollowedBy blanklines >> P.anyChar)
+  blanklinesBetweenBlock
+  P.updateState $ addRef refId refLink
+  return Null
 
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
@@ -134,6 +151,7 @@ instance WriteMd Block where
   writeMd (BlockHtml str)        = str
   writeMd HorizontalRule         = "<hr />"
   writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
+  writeMd Null                   = ""
 
 instance WriteMd Inline where
   writeMd LineBreak        = "<br />"

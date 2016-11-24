@@ -25,6 +25,7 @@ data Block = Header Int [Inline]
            | BlockHtml String
            | HorizontalRule
            | Paragraph [Inline]
+           | Null
            deriving (Show, Eq)
 
 -- TODO: cite, link, code, (math)
