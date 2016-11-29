@@ -43,4 +43,4 @@ class ReadMd a where
   parser :: Parsec String ParseContext a
 
 class WriteMd a where
-  writeMd :: a -> String
+  writeMd :: a -> MetaData -> String

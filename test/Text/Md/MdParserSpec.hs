@@ -36,6 +36,9 @@ spec = do
     it "parses to inline link" $ do
       parseMarkdown "this is [inline link](http://foo.com \"inline-link\").\n\n" `shouldBe` "<div><p>this is <a href=\"http://foo.com\" title=\"inline-link\">inline link</a>.</p></div>"
 
+    it "parses to reference link" $ do
+      parseMarkdown "this is [reference link][1].\n\n[1]: http://foo.com\n\n" `shouldBe` "<div><p>this is <a href=\"http://foo.com\">reference link</a>.</p></div>"
+
     it "parses to linebreak and softbreak in paragraph" $ do
       parseMarkdown "Before break  \nafter break\nand just space\n\n"
       `shouldBe`
