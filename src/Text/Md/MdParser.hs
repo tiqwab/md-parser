@@ -31,6 +31,7 @@ instance ReadMd Block where
                     ]
            <?> "block"
 
+blanklineBetweenBlock  = blankline *> P.many (P.try blankline)
 blanklinesBetweenBlock = blankline *> blankline *> P.many (P.try blankline)
 
 pHeader = P.try $ do
@@ -57,12 +58,15 @@ addRef refId refLink state = state { metadata = newMeta }
         newRefs      = M.insert refId refLink originalRefs
 
 pReference = P.try $ do
-  refId <- pEnclosed "[" "]"
-  P.char ':'
-  skipSpaces
-  refLink <- P.many1 (P.notFollowedBy blanklines >> P.anyChar)
-  blanklinesBetweenBlock
-  P.updateState $ addRef refId refLink
+  let pOneRef = do refId <- pEnclosed "[" "]"
+                   P.char ':'
+                   skipSpaces
+                   refLink <- P.many1 (P.notFollowedBy blankline >> P.anyChar)
+                   blankline
+                   return (refId, refLink)
+  refs <- P.many1 pOneRef
+  blanklineBetweenBlock
+  mapM_ (\(refId, refLink) -> P.updateState $ addRef refId refLink) refs
   return Null
 
 pParagraph = P.try $ do
