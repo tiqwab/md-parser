@@ -14,16 +14,19 @@ import           Text.Md.ParseUtils
 import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
-import qualified Text.ParserCombinators.Parsec as P hiding (try)
+import qualified Text.ParserCombinators.Parsec as P hiding (try, runParser)
+import qualified Data.Map as M
 
 instance ReadMd Document where
   parser = do blocks <- P.manyTill parser P.eof
-              return $ Document blocks
+              meta   <- metadata <$> P.getState
+              return $ Document blocks meta
 
 instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
                     , pHorizontalRule
+                    , pReference
                     , pParagraph
                     ]
            <?> "block"
@@ -47,6 +50,21 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
+addRef refId refLink state = state { metadata = newMeta }
+  where oldMeta      = metadata state
+        newMeta      = oldMeta { references = newRefs }
+        originalRefs = references . metadata $ state
+        newRefs      = M.insert refId refLink originalRefs
+
+pReference = P.try $ do
+  refId <- pEnclosed "[" "]"
+  P.char ':'
+  skipSpaces
+  refLink <- P.many1 (P.notFollowedBy blanklines >> P.anyChar)
+  blanklinesBetweenBlock
+  P.updateState $ addRef refId refLink
+  return Null
+
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
   inlines <- P.many1 parser
@@ -60,6 +78,7 @@ instance ReadMd Inline where
                     , pStrong
                     , pInlineLink
                     , pInlineHtml
+                    , pReferenceLink
                     , pStr
                     , pHtmlEscape
                     , pMark
@@ -95,13 +114,24 @@ pInlineLink = P.try $ do
   (link, title) <- P.between (P.char '(') (P.char ')') pLinkAndTitle
   return $ InlineLink text link title
 
+pReferenceLink = P.try $ do
+  text  <- pEnclosed "[" "]"
+  P.optional spaceChar
+  refId <- pEnclosed "[" "]"
+  return $ ReferenceLink text refId
+
+pEnclosed begin end = P.between pBegin pEnd (P.many1 pNones)
+  where pBegin = P.string begin
+        pEnd   = P.string end
+        pNones = P.noneOf (begin ++ end)
+
 pStr = P.try $ do
   -- str <- P.many1 (P.notFollowedBy pMark >> P.anyChar)
   str <- P.many1 P.alphaNum
   return $ Str str
 
 pInlineHtml = P.try $ do
-  let context = ParseContext parser :: ParseContext Inline
+  let context = HtmlParseContext parser :: HtmlParseContext Inline
   pInlineElement context
 
 pMark = P.try $ do
@@ -114,31 +144,35 @@ pMark = P.try $ do
 mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!']
 
 instance WriteMd Document where
-  writeMd (Document blocks) = "<div>" ++ concatMap writeMd blocks ++ "</div>"
+  writeMd (Document blocks meta) _ = "<div>" ++ concatMap (`writeMd` meta) blocks ++ "</div>"
 
 instance WriteMd Block where
-  writeMd (Header level inlines) = "<h" ++ show level ++ ">" ++ concatMap writeMd inlines ++ "</h" ++ show level ++ ">"
-  writeMd (BlockHtml str)        = str
-  writeMd HorizontalRule         = "<hr />"
-  writeMd (Paragraph inlines)    = "<p>" ++ concatMap writeMd inlines ++ "</p>"
+  writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
+  writeMd (BlockHtml str) meta        = str
+  writeMd HorizontalRule meta         = "<hr />"
+  writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
+  writeMd Null meta                   = ""
 
 instance WriteMd Inline where
-  writeMd LineBreak        = "<br />"
-  writeMd SoftBreak        = " "
-  writeMd Space            = " "
-  writeMd (Strong inlines) = "<strong>" ++ concatMap writeMd inlines ++ "</strong>"
-  writeMd (InlineLink text link (Just title)) = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
-  writeMd (InlineLink text link Nothing)      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
-  writeMd (InlineHtml inlines) = concatMap writeMd inlines
-  writeMd (Str str)        = str
+  writeMd LineBreak meta                           = "<br />"
+  writeMd SoftBreak meta                           = " "
+  writeMd Space meta                               = " "
+  writeMd (Strong inlines) meta                    = "<strong>" ++ concatMap (`writeMd` meta) inlines ++ "</strong>"
+  writeMd (ReferenceLink text linkId) meta         = case M.lookup linkId (references meta) of
+                                                       Just link -> "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
+                                                       Nothing   -> "<a href=\"\">" ++ text ++ "</a>"
+  writeMd (InlineLink text link (Just title)) meta = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
+  writeMd (InlineLink text link Nothing) meta      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
+  writeMd (InlineHtml inlines) meta                = concatMap (`writeMd` meta) inlines
+  writeMd (Str str) meta                           = str
 
 readMarkdown :: String -> Document
-readMarkdown input = case P.parse parser "" input of
-                       Left  e -> error (show e) -- FIX ME
+readMarkdown input = case P.runParser parser defContext "" input of
+                       Left  e -> error (show e) -- FIXME
                        Right s -> s
 
 writeMarkdown :: Document -> String
-writeMarkdown doc = writeMd doc
+writeMarkdown doc = writeMd doc (MetaData M.empty) -- FIXME
 
 -- | Parse and convert markdown to html
 parseMarkdown :: String -> String

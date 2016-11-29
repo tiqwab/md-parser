@@ -26,6 +26,7 @@ library
                      , parsec
                      , transformers
                      , tagsoup
+                     , containers
                      , hspec
   default-language:    Haskell2010
 
