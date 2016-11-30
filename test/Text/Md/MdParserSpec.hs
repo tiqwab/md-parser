@@ -38,11 +38,12 @@ spec = do
 
     it "parses to reference link" $ do
       parseMarkdown "this is [reference link][1].\n\n[1]: http://foo.com\n\n" `shouldBe` "<div><p>this is <a href=\"http://foo.com\">reference link</a>.</p></div>"
+      parseMarkdown "this is [reference link][1].\n\n[1]: http://foo.com \"link title\"\n\n" `shouldBe` "<div><p>this is <a href=\"http://foo.com\" title=\"link title\">reference link</a>.</p></div>"
 
     it "parses to multiple reference links" $ do
       parseMarkdown "[one][1], [two][2], [three][3]\n\n[1]: http://one.com\n[2]: http://two.com\n[3]: http://three.com\n\n"
       `shouldBe`
-      "<div><p><a href=\"http://one.com\">one</a>, <a href=\"http://two.com\">two</a>, <a href=\"http://three.com\">three</a></p></div>"  
+      "<div><p><a href=\"http://one.com\">one</a>, <a href=\"http://two.com\">two</a>, <a href=\"http://three.com\">three</a></p></div>"
 
     it "parses to linebreak and softbreak in paragraph" $ do
       parseMarkdown "Before break  \nafter break\nand just space\n\n"

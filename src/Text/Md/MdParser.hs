@@ -53,7 +53,7 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
-addRef refId (refLink, refTitle) state = state { metadata = newMeta }
+addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
         newMeta      = oldMeta { references = newRefs }
         originalRefs = references . metadata $ state
@@ -64,12 +64,13 @@ pReference = P.try $ do
   let pOneRef = do refId <- pEnclosed "[" "]"
                    P.char ':'
                    skipSpaces
-                   refLink <- P.many1 (P.notFollowedBy blankline >> P.anyChar)
+                   refLink <- P.many1 (P.notFollowedBy (spaceChar <|> blankline) >> P.anyChar)
+                   refTitle <- P.optionMaybe $ skipSpaces *> pEnclosed "\"" "\""
                    blankline
-                   return (refId, refLink)
+                   return (refId, refLink, refTitle)
   refs <- P.many1 pOneRef
   blanklineBetweenBlock
-  mapM_ (\(refId, refLink) -> P.updateState $ addRef refId (refLink, Nothing)) refs
+  mapM_ (P.updateState . addRef) refs
   return Null
 
 pParagraph = P.try $ do
