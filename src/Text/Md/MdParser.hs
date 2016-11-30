@@ -6,11 +6,13 @@ where
 
 import           Control.Monad
 import           Debug.Trace
+import           Data.Maybe (fromMaybe)
 import           System.IO
 import qualified Text.HTML.TagSoup             as TS
 import           Text.Md.HtmlParser
 import           Text.Md.MdParserDef
 import           Text.Md.ParseUtils
+import           Text.Md.HtmlTags
 import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
@@ -31,6 +33,7 @@ instance ReadMd Block where
                     ]
            <?> "block"
 
+blanklineBetweenBlock  = blankline *> P.many (P.try blankline)
 blanklinesBetweenBlock = blankline *> blankline *> P.many (P.try blankline)
 
 pHeader = P.try $ do
@@ -50,19 +53,24 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
-addRef refId refLink state = state { metadata = newMeta }
+addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
         newMeta      = oldMeta { references = newRefs }
         originalRefs = references . metadata $ state
-        newRefs      = M.insert refId refLink originalRefs
+        newRefs      = M.insert refId (refLink, refTitle) originalRefs
 
+-- TODO: Parse title
 pReference = P.try $ do
-  refId <- pEnclosed "[" "]"
-  P.char ':'
-  skipSpaces
-  refLink <- P.many1 (P.notFollowedBy blanklines >> P.anyChar)
-  blanklinesBetweenBlock
-  P.updateState $ addRef refId refLink
+  let pOneRef = do refId <- pEnclosed "[" "]"
+                   P.char ':'
+                   skipSpaces
+                   refLink <- P.many1 (P.notFollowedBy (spaceChar <|> blankline) >> P.anyChar)
+                   refTitle <- P.optionMaybe $ skipSpaces *> pEnclosed "\"" "\""
+                   blankline
+                   return (refId, refLink, refTitle)
+  refs <- P.many1 pOneRef
+  blanklineBetweenBlock
+  mapM_ (P.updateState . addRef) refs
   return Null
 
 pParagraph = P.try $ do
@@ -159,10 +167,9 @@ instance WriteMd Inline where
   writeMd Space meta                               = " "
   writeMd (Strong inlines) meta                    = "<strong>" ++ concatMap (`writeMd` meta) inlines ++ "</strong>"
   writeMd (ReferenceLink text linkId) meta         = case M.lookup linkId (references meta) of
-                                                       Just link -> "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
-                                                       Nothing   -> "<a href=\"\">" ++ text ++ "</a>"
-  writeMd (InlineLink text link (Just title)) meta = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
-  writeMd (InlineLink text link Nothing) meta      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
+                                                       Just (link, title) -> hLink text link title
+                                                       Nothing            -> hLink text "" Nothing
+  writeMd (InlineLink text link title) meta = hLink text link title
   writeMd (InlineHtml inlines) meta                = concatMap (`writeMd` meta) inlines
   writeMd (Str str) meta                           = str
 
