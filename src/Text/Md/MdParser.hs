@@ -6,6 +6,7 @@ where
 
 import           Control.Monad
 import           Debug.Trace
+import           Data.Maybe (fromMaybe)
 import           System.IO
 import qualified Text.HTML.TagSoup             as TS
 import           Text.Md.HtmlParser
@@ -51,12 +52,13 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
-addRef refId refLink state = state { metadata = newMeta }
+addRef refId (refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
         newMeta      = oldMeta { references = newRefs }
         originalRefs = references . metadata $ state
-        newRefs      = M.insert refId refLink originalRefs
+        newRefs      = M.insert refId (refLink, refTitle) originalRefs
 
+-- TODO: Parse title
 pReference = P.try $ do
   let pOneRef = do refId <- pEnclosed "[" "]"
                    P.char ':'
@@ -66,7 +68,7 @@ pReference = P.try $ do
                    return (refId, refLink)
   refs <- P.many1 pOneRef
   blanklineBetweenBlock
-  mapM_ (\(refId, refLink) -> P.updateState $ addRef refId refLink) refs
+  mapM_ (\(refId, refLink) -> P.updateState $ addRef refId (refLink, Nothing)) refs
   return Null
 
 pParagraph = P.try $ do
@@ -157,16 +159,18 @@ instance WriteMd Block where
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd Null meta                   = ""
 
+hLink text link (Just title) = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
+hLink text link Nothing      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
+
 instance WriteMd Inline where
   writeMd LineBreak meta                           = "<br />"
   writeMd SoftBreak meta                           = " "
   writeMd Space meta                               = " "
   writeMd (Strong inlines) meta                    = "<strong>" ++ concatMap (`writeMd` meta) inlines ++ "</strong>"
   writeMd (ReferenceLink text linkId) meta         = case M.lookup linkId (references meta) of
-                                                       Just link -> "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
-                                                       Nothing   -> "<a href=\"\">" ++ text ++ "</a>"
-  writeMd (InlineLink text link (Just title)) meta = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
-  writeMd (InlineLink text link Nothing) meta      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
+                                                       Just (link, title) -> hLink text link title
+                                                       Nothing            -> hLink text "" Nothing
+  writeMd (InlineLink text link title) meta = hLink text link title
   writeMd (InlineHtml inlines) meta                = concatMap (`writeMd` meta) inlines
   writeMd (Str str) meta                           = str
 

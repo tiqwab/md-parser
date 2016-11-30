@@ -17,7 +17,8 @@ defContext = ParseContext { metadata = MetaData M.empty }
 
 type RefId    = String
 type RefLink  = String
-data MetaData = MetaData { references :: M.Map RefId RefLink }
+type RefTitle = Maybe String
+data MetaData = MetaData { references :: M.Map RefId (RefLink, RefTitle) }
   deriving (Show, Eq)
 
 -- TODO: list, blockquotes, codeblock
