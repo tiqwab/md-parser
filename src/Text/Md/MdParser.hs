@@ -12,6 +12,7 @@ import qualified Text.HTML.TagSoup             as TS
 import           Text.Md.HtmlParser
 import           Text.Md.MdParserDef
 import           Text.Md.ParseUtils
+import           Text.Md.HtmlTags
 import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
@@ -158,9 +159,6 @@ instance WriteMd Block where
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd Null meta                   = ""
-
-hLink text link (Just title) = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
-hLink text link Nothing      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
 
 instance WriteMd Inline where
   writeMd LineBreak meta                           = "<br />"

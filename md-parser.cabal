@@ -20,6 +20,7 @@ library
                      , Text.Md.MdParser
                      , Text.Md.HtmlParser
                      , Text.Md.ParseUtils
+                     , Text.Md.HtmlTags
   build-depends:       base >= 4.7 && < 5
                      , text
                      , bytestring
