@@ -29,7 +29,7 @@ data Block = Header Int [Inline]
            | Null
            deriving (Show, Eq)
 
--- TODO: cite, link, code, (math)
+-- TODO: code, (math)
 data Inline = LineBreak
             | SoftBreak
             | Space
