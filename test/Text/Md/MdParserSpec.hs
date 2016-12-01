@@ -55,6 +55,9 @@ spec = do
       parseMarkdown "abc**\n\n" `shouldBe` "<div><p>abc**</p></div>"
       parseMarkdown "**abc\n\n**\n\n" `shouldBe` "<div><p>**abc</p><p>**</p></div>"
 
+    it "parses inline codes" $ do
+      parseMarkdown "one ` two   three `  four\n\n" `shouldBe` "<div><p>one <code>two   three</code> four</p></div>"
+
     it "parse html inline elements and just show original text" $ do
       parseMarkdown "this is framed by <span class=\"cl1\">span</span> tag.\n\n"
       `shouldBe`

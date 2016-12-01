@@ -85,6 +85,7 @@ instance ReadMd Inline where
                     , pSpace
                     , pStrong
                     , pInlineLink
+                    , pInlineCode
                     , pInlineHtml
                     , pReferenceLink
                     , pStr
@@ -128,15 +129,21 @@ pReferenceLink = P.try $ do
   refId <- pEnclosed "[" "]"
   return $ ReferenceLink text refId
 
-pEnclosed begin end = P.between pBegin pEnd (P.many1 pNones)
+pEnclosed begin end = pEnclosedP begin end (P.many1 pNones)
+  where pNones = P.noneOf (begin ++ end)
+
+pEnclosedP begin end = P.between pBegin pEnd
   where pBegin = P.string begin
         pEnd   = P.string end
-        pNones = P.noneOf (begin ++ end)
 
 pStr = P.try $ do
   -- str <- P.many1 (P.notFollowedBy pMark >> P.anyChar)
   str <- P.many1 P.alphaNum
   return $ Str str
+
+pInlineCode = P.try $ do
+  code <- trim <$> pEnclosed "`" "`"
+  return $ InlineCode code
 
 pInlineHtml = P.try $ do
   let context = HtmlParseContext parser :: HtmlParseContext Inline
@@ -170,6 +177,7 @@ instance WriteMd Inline where
                                                        Just (link, title) -> hLink text link title
                                                        Nothing            -> hLink text "" Nothing
   writeMd (InlineLink text link title) meta = hLink text link title
+  writeMd (InlineCode text) meta                   = "<code>" ++ text ++ "</code>"
   writeMd (InlineHtml inlines) meta                = concatMap (`writeMd` meta) inlines
   writeMd (Str str) meta                           = str
 
