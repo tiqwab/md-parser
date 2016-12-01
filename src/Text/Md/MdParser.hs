@@ -142,8 +142,9 @@ pStr = P.try $ do
   return $ Str str
 
 pInlineCode = P.try $ do
-  let pSingleStr = P.noneOf "`" >>= (\x -> return $ Str [x])
-  codes <- pEnclosedP "`" "`" (P.many1 (P.try pHtmlEscape <|> pSingleStr))
+  let pSingleStr = P.anyChar >>= (\x -> return $ Str [x])
+  start <- P.many1 $ P.try (P.char '`')
+  codes <- P.manyTill (P.try pHtmlEscape <|> pSingleStr) (P.try (P.string start))
   return $ InlineCode codes
 
 pInlineHtml = P.try $ do
