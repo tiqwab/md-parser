@@ -36,7 +36,7 @@ data Inline = LineBreak
             | Strong [Inline]
             | InlineLink String String (Maybe String)
             | ReferenceLink String RefId
-            | InlineCode String
+            | InlineCode [Inline]
             | InlineHtml [Inline]
             | Str String
               deriving (Show, Eq)

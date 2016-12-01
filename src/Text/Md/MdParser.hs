@@ -142,8 +142,9 @@ pStr = P.try $ do
   return $ Str str
 
 pInlineCode = P.try $ do
-  code <- trim <$> pEnclosed "`" "`"
-  return $ InlineCode code
+  let pSingleStr = P.noneOf "`" >>= (\x -> return $ Str [x])
+  codes <- pEnclosedP "`" "`" (P.many1 (P.try pHtmlEscape <|> pSingleStr))
+  return $ InlineCode codes
 
 pInlineHtml = P.try $ do
   let context = HtmlParseContext parser :: HtmlParseContext Inline
@@ -177,7 +178,8 @@ instance WriteMd Inline where
                                                        Just (link, title) -> hLink text link title
                                                        Nothing            -> hLink text "" Nothing
   writeMd (InlineLink text link title) meta = hLink text link title
-  writeMd (InlineCode text) meta                   = "<code>" ++ text ++ "</code>"
+  writeMd (InlineCode inlines) meta                = let text = trim $ concatMap (`writeMd` meta) inlines
+                                                     in "<code>" ++ text ++ "</code>"
   writeMd (InlineHtml inlines) meta                = concatMap (`writeMd` meta) inlines
   writeMd (Str str) meta                           = str
 
