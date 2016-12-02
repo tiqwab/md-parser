@@ -29,6 +29,11 @@ spec = do
       parseMarkdown "foobar\n\n- -  - \n\nfoobar\n\n" `shouldBe` "<div><p>foobar</p><hr /><p>foobar</p></div>"
       parseMarkdown "foobar\n\n___\n\n***\n\n" `shouldBe` "<div><p>foobar</p><hr /><hr /></div>"
 
+    it "parses to simple list" $ do
+      parseMarkdown "- one\n- two\n- three\n\n" `shouldBe` "<div><ul><li>one</li><li>two</li><li>three</li></ul></div>"
+      parseMarkdown "+ one\n+ **two**\n+ three\n\n" `shouldBe` "<div><ul><li>one</li><li><strong>two</strong></li><li>three</li></ul></div>"
+      parseMarkdown "* one\n* **two**\n* three\n\n" `shouldBe` "<div><ul><li>one</li><li><strong>two</strong></li><li>three</li></ul></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"

@@ -28,6 +28,7 @@ instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
                     , pHorizontalRule
+                    , pListBlock
                     , pReference
                     , pParagraph
                     ]
@@ -52,6 +53,19 @@ pBorder char = P.try $ do
   blanklinesBetweenBlock
   guard $ length chars >= 3
   return HorizontalRule
+
+pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
+
+pListItem char = P.try $ do
+  P.char char
+  P.many1 spaceChar
+  inlines <- P.many1 (P.notFollowedBy blankline >> parser)
+  blankline
+  return inlines
+
+pList char = P.try $ do
+  items <- P.manyTill (pListItem char) blankline
+  return $ List items
 
 addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
@@ -166,6 +180,7 @@ instance WriteMd Document where
 instance WriteMd Block where
   writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
   writeMd (BlockHtml str) meta        = str
+  writeMd (List items) meta           = hList $ map (concatMap (`writeMd` meta)) items
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd Null meta                   = ""
