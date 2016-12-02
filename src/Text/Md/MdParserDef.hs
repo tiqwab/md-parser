@@ -29,7 +29,7 @@ data Block = Header Int [Inline]
            | HorizontalRule
            | List [ListItem]
            | Paragraph [Inline]
-           | Null
+           | NullB
            deriving (Show, Eq)
 
 -- TODO: (math)
@@ -42,6 +42,7 @@ data Inline = LineBreak
             | InlineCode [Inline]
             | InlineHtml [Inline]
             | Str String
+            | NullL
               deriving (Show, Eq)
 
 class ReadMd a where

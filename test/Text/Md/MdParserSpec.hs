@@ -34,6 +34,10 @@ spec = do
       parseMarkdown "+ one\n+ **two**\n+ three\n\n" `shouldBe` "<div><ul><li>one</li><li><strong>two</strong></li><li>three</li></ul></div>"
       parseMarkdown "* one\n* **two**\n* three\n\n" `shouldBe` "<div><ul><li>one</li><li><strong>two</strong></li><li>three</li></ul></div>"
 
+    -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+    it "parses to list with multiple lines" $ do
+      parseMarkdown "- one\ntwo, three\n- four\n  and\n- five\n\n" `shouldBe` "<div><ul><li>one two, three</li><li>four  and</li><li>five</li></ul></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"

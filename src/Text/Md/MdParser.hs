@@ -56,10 +56,11 @@ pBorder char = P.try $ do
 
 pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
 
+-- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
 pListItem char = P.try $ do
   P.char char
   P.many1 spaceChar
-  inlines <- P.many1 (P.notFollowedBy blankline >> parser)
+  inlines <- P.many1 (P.notFollowedBy (blankline *> P.char char) >> parser)
   blankline
   return inlines
 
@@ -85,7 +86,7 @@ pReference = P.try $ do
   refs <- P.many1 pOneRef
   blanklineBetweenBlock
   mapM_ (P.updateState . addRef) refs
-  return Null
+  return NullB
 
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
@@ -183,7 +184,7 @@ instance WriteMd Block where
   writeMd (List items) meta           = hList $ map (concatMap (`writeMd` meta)) items
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
-  writeMd Null meta                   = ""
+  writeMd NullB meta                  = ""
 
 instance WriteMd Inline where
   writeMd LineBreak meta                           = "<br />"
@@ -198,6 +199,7 @@ instance WriteMd Inline where
                                                      in "<code>" ++ text ++ "</code>"
   writeMd (InlineHtml inlines) meta                = concatMap (`writeMd` meta) inlines
   writeMd (Str str) meta                           = str
+  writeMd NullL meta                               = ""
 
 readMarkdown :: String -> Document
 readMarkdown input = case P.runParser parser defContext "" input of
