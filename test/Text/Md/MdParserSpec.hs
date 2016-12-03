@@ -38,6 +38,9 @@ spec = do
     it "parses to list with multiple lines" $ do
       parseMarkdown "- one\ntwo, three\n- four\n  and\n- five\n\n" `shouldBe` "<div><ul><li>one two, three</li><li>four  and</li><li>five</li></ul></div>"
 
+    it "parses to list with paragraphs" $ do
+      parseMarkdown "prev para\n\n- one\n\n- two\n\nfollowing para\n\n" `shouldBe` "<div><p>prev para</p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>following para</p></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"

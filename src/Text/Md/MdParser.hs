@@ -28,7 +28,8 @@ instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
                     , pHorizontalRule
-                    , pListBlock
+                    , pListParaBlock
+                    , pListLineBlock
                     , pReference
                     , pParagraph
                     ]
@@ -54,19 +55,32 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
-pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
+pListLineBlock = P.try $ P.choice [pListLine '-', pListLine '*', pListLine '+']
 
 -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
-pListItem char = P.try $ do
+pListLineItem char = P.try $ do
   P.char char
   P.many1 spaceChar
   inlines <- P.many1 (P.notFollowedBy (blankline *> P.char char) >> parser)
   blankline
   return inlines
 
-pList char = P.try $ do
-  items <- P.manyTill (pListItem char) blankline
-  return $ List items
+pListLine char = P.try $ do
+  items <- P.manyTill (pListLineItem char) blankline
+  return $ ListLine items
+
+pListParaBlock = P.try $ P.choice [pListPara '-', pListPara '*', pListPara '+']
+
+-- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+pListParaItem char = P.try $ do
+  P.char char
+  P.many1 spaceChar
+  content <- P.sepBy (P.notFollowedBy (P.char char) >> pParagraph) (P.count 4 spaceChar)
+  return content
+
+pListPara char = P.try $ do
+  items <- P.many1 (pListParaItem char)
+  return $ ListPara items
 
 addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
@@ -181,7 +195,8 @@ instance WriteMd Document where
 instance WriteMd Block where
   writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
   writeMd (BlockHtml str) meta        = str
-  writeMd (List items) meta           = hList $ map (concatMap (`writeMd` meta)) items
+  writeMd (ListPara paras) meta       = hList $ map (concatMap (`writeMd` meta)) paras
+  writeMd (ListLine items) meta       = hList $ map (concatMap (`writeMd` meta)) items
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""

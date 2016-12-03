@@ -21,13 +21,15 @@ type RefTitle = Maybe String
 data MetaData = MetaData { references :: M.Map RefId (RefLink, RefTitle) }
   deriving (Show, Eq)
 
-type ListItem = [Inline]
+type ListLineItem = [Inline]
+type ListParaItem = [Block]
 
 -- TODO: list, blockquotes, codeblock
 data Block = Header Int [Inline]
            | BlockHtml String
            | HorizontalRule
-           | List [ListItem]
+           | ListLine [ListLineItem]
+           | ListPara [ListParaItem]
            | Paragraph [Inline]
            | NullB
            deriving (Show, Eq)
