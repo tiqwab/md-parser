@@ -29,6 +29,21 @@ spec = do
       parseMarkdown "foobar\n\n- -  - \n\nfoobar\n\n" `shouldBe` "<div><p>foobar</p><hr /><p>foobar</p></div>"
       parseMarkdown "foobar\n\n___\n\n***\n\n" `shouldBe` "<div><p>foobar</p><hr /><hr /></div>"
 
+    it "parses to simple list" $ do
+      parseMarkdown "- one\n- two\n- three\n\n" `shouldBe` "<div><ul><li>one</li><li>two</li><li>three</li></ul></div>"
+      parseMarkdown "+ one\n+ **two**\n+ three\n\n" `shouldBe` "<div><ul><li>one</li><li><strong>two</strong></li><li>three</li></ul></div>"
+      parseMarkdown "* one\n* **two**\n* three\n\n" `shouldBe` "<div><ul><li>one</li><li><strong>two</strong></li><li>three</li></ul></div>"
+
+    -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+    it "parses to list with multiple lines" $ do
+      parseMarkdown "- one\ntwo, three\n- four\n  and\n- five\n\n" `shouldBe` "<div><ul><li>one two, three</li><li>four  and</li><li>five</li></ul></div>"
+
+    -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+    it "parses to list with paragraphs" $ do
+      parseMarkdown "prev para\n\n- one\n\n- two\n\nfollowing para\n\n" `shouldBe` "<div><p>prev para</p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>following para</p></div>"
+      parseMarkdown "- one\ntwo\n\n- three\n  four\n\n" `shouldBe` "<div><ul><li><p>one two</p></li><li><p>three  four</p></li></ul></div>"
+      parseMarkdown "-   one\n\n    two\n\n    three\n\n-   four\n\n    five\n\n" `shouldBe` "<div><ul><li><p>one</p><p>two</p><p>three</p></li><li><p>four</p><p>five</p></li></ul></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"

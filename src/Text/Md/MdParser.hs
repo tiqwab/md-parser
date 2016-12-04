@@ -28,6 +28,7 @@ instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
                     , pHorizontalRule
+                    , pListBlock
                     , pReference
                     , pParagraph
                     ]
@@ -53,6 +54,35 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
+pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
+
+pListIndent = P.try (P.count 4 (P.char ' ')) <|> P.string "\t"
+
+pList char = P.try $ do
+  let pItem =  P.try (pListLineItem char <* P.notFollowedBy (P.try (blankline *> P.string [char]) <|> (blankline *> pListIndent)))
+           <|> pListParaItem char
+  firstItem <- pItem
+  items <- case firstItem of
+    ListLineItem _ -> P.many (pListLineItem char <* P.notFollowedBy (blankline *> P.char char))
+    ListParaItem _ -> P.many (pListParaItem char)
+  P.optional blankline
+  return $ List (firstItem:items)
+
+-- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+pListLineItem char = P.try $ do
+  P.char char
+  P.many1 spaceChar
+  inlines <- P.many1 (P.notFollowedBy (blankline *> P.char char) >> parser)
+  blankline
+  return $ ListLineItem inlines
+
+-- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+pListParaItem char = P.try $ do
+  P.char char
+  P.many1 spaceChar
+  content <- P.sepBy (P.notFollowedBy (P.char char) >> pParagraph) pListIndent
+  return $ ListParaItem content
+
 addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
         newMeta      = oldMeta { references = newRefs }
@@ -71,7 +101,7 @@ pReference = P.try $ do
   refs <- P.many1 pOneRef
   blanklineBetweenBlock
   mapM_ (P.updateState . addRef) refs
-  return Null
+  return NullB
 
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
@@ -166,9 +196,12 @@ instance WriteMd Document where
 instance WriteMd Block where
   writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
   writeMd (BlockHtml str) meta        = str
+  writeMd (List items) meta           = hList $ map writeListLine items
+    where writeListLine (ListLineItem inlines) = concatMap (`writeMd` meta) inlines
+          writeListLine (ListParaItem paras)   = concatMap (`writeMd` meta) paras
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
-  writeMd Null meta                   = ""
+  writeMd NullB meta                  = ""
 
 instance WriteMd Inline where
   writeMd LineBreak meta                           = "<br />"
@@ -183,6 +216,7 @@ instance WriteMd Inline where
                                                      in "<code>" ++ text ++ "</code>"
   writeMd (InlineHtml inlines) meta                = concatMap (`writeMd` meta) inlines
   writeMd (Str str) meta                           = str
+  writeMd NullL meta                               = ""
 
 readMarkdown :: String -> Document
 readMarkdown input = case P.runParser parser defContext "" input of

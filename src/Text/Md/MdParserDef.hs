@@ -21,12 +21,17 @@ type RefTitle = Maybe String
 data MetaData = MetaData { references :: M.Map RefId (RefLink, RefTitle) }
   deriving (Show, Eq)
 
+data ListItem = ListLineItem [Inline]
+              | ListParaItem [Block]
+  deriving (Show, Eq)
+
 -- TODO: list, blockquotes, codeblock
 data Block = Header Int [Inline]
            | BlockHtml String
            | HorizontalRule
+           | List [ListItem]
            | Paragraph [Inline]
-           | Null
+           | NullB
            deriving (Show, Eq)
 
 -- TODO: (math)
@@ -39,6 +44,7 @@ data Inline = LineBreak
             | InlineCode [Inline]
             | InlineHtml [Inline]
             | Str String
+            | NullL
               deriving (Show, Eq)
 
 class ReadMd a where
