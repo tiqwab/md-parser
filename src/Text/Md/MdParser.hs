@@ -28,8 +28,7 @@ instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
                     , pHorizontalRule
-                    , pListParaBlock
-                    , pListLineBlock
+                    , pListBlock
                     , pReference
                     , pParagraph
                     ]
@@ -55,7 +54,19 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
-pListLineBlock = P.try $ P.choice [pListLine '-', pListLine '*', pListLine '+']
+pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
+
+pListIndent = P.try (P.count 4 (P.char ' ')) <|> P.string "\t"
+
+pList char = P.try $ do
+  let pItem =  P.try (pListLineItem char <* P.notFollowedBy (P.try (blankline *> P.string [char]) <|> (blankline *> pListIndent)))
+           <|> pListParaItem char
+  firstItem <- pItem
+  items <- case firstItem of
+    ListLineItem _ -> P.many (pListLineItem char <* P.notFollowedBy (blankline *> P.char char))
+    ListParaItem _ -> P.many (pListParaItem char)
+  P.optional blankline
+  return $ List (firstItem:items)
 
 -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
 pListLineItem char = P.try $ do
@@ -63,24 +74,14 @@ pListLineItem char = P.try $ do
   P.many1 spaceChar
   inlines <- P.many1 (P.notFollowedBy (blankline *> P.char char) >> parser)
   blankline
-  return inlines
-
-pListLine char = P.try $ do
-  items <- P.manyTill (pListLineItem char) blankline
-  return $ ListLine items
-
-pListParaBlock = P.try $ P.choice [pListPara '-', pListPara '*', pListPara '+']
+  return $ ListLineItem inlines
 
 -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
 pListParaItem char = P.try $ do
   P.char char
   P.many1 spaceChar
-  content <- P.sepBy (P.notFollowedBy (P.char char) >> pParagraph) (P.count 4 spaceChar)
-  return content
-
-pListPara char = P.try $ do
-  items <- P.many1 (pListParaItem char)
-  return $ ListPara items
+  content <- P.sepBy (P.notFollowedBy (P.char char) >> pParagraph) pListIndent
+  return $ ListParaItem content
 
 addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
@@ -195,8 +196,9 @@ instance WriteMd Document where
 instance WriteMd Block where
   writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
   writeMd (BlockHtml str) meta        = str
-  writeMd (ListPara paras) meta       = hList $ map (concatMap (`writeMd` meta)) paras
-  writeMd (ListLine items) meta       = hList $ map (concatMap (`writeMd` meta)) items
+  writeMd (List items) meta           = hList $ map writeListLine items
+    where writeListLine (ListLineItem inlines) = concatMap (`writeMd` meta) inlines
+          writeListLine (ListParaItem paras)   = concatMap (`writeMd` meta) paras
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""
