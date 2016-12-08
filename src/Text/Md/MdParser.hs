@@ -54,6 +54,8 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
+----- List -----
+
 pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
 
 pListIndent = P.try (P.count 4 (P.char ' ')) <|> P.string "\t"
@@ -82,6 +84,8 @@ pListParaItem char = P.try $ do
   P.many1 spaceChar
   content <- P.sepBy (P.notFollowedBy (P.char char) >> pParagraph) pListIndent
   return $ ListParaItem content
+
+----- List -----
 
 addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
