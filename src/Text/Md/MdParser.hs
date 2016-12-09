@@ -65,25 +65,32 @@ pList char = P.try $ do
            <|> pListParaItem char
   firstItem <- pItem
   items <- case firstItem of
-    ListLineItem _ -> P.many (pListLineItem char <* P.notFollowedBy (blankline *> P.char char))
-    ListParaItem _ -> P.many (pListParaItem char)
+    ListLineItem {} -> P.many (pListLineItem char <* P.notFollowedBy (blankline *> P.char char))
+    ListParaItem {} -> P.many (pListParaItem char)
   P.optional blankline
   return $ List (firstItem:items)
 
 -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
 pListLineItem char = P.try $ do
+  indents <- P.many pListIndent
   P.char char
-  P.many1 spaceChar
-  inlines <- P.many1 (P.notFollowedBy (blankline *> P.char char) >> parser)
+  spaceSep <- P.many1 (P.char ' ')
+  guard $ length spaceSep <= 3
+  inlines <- P.many1 (P.notFollowedBy (blankline *> P.optional (P.many pListIndent) *> P.char char) >> parser)
   blankline
-  return $ ListLineItem inlines
+  return $ ListLineItem (length indents + 1) inlines []
 
 -- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
 pListParaItem char = P.try $ do
+  indents <- P.many pListIndent
   P.char char
-  P.many1 spaceChar
-  content <- P.sepBy (P.notFollowedBy (P.char char) >> pParagraph) pListIndent
-  return $ ListParaItem content
+  spaceSep <- P.many1 (P.char ' ')
+  guard $ length spaceSep <= 3
+  let pIndent   = P.count (length indents) pListIndent
+      pSpaceSep = P.count (length spaceSep + 1) (P.char ' ')
+  firstContent <- pParagraph
+  followingContent <- P.many (P.notFollowedBy (P.many pListIndent *> P.char char) *> pIndent *> pSpaceSep *> P.notFollowedBy (P.char char) *> pParagraph)
+  return $ ListParaItem (length indents + 1) (firstContent : followingContent) []
 
 ----- List -----
 
@@ -201,8 +208,8 @@ instance WriteMd Block where
   writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
   writeMd (BlockHtml str) meta        = str
   writeMd (List items) meta           = hList $ map writeListLine items
-    where writeListLine (ListLineItem inlines) = concatMap (`writeMd` meta) inlines
-          writeListLine (ListParaItem paras)   = concatMap (`writeMd` meta) paras
+    where writeListLine (ListLineItem level inlines children) = concatMap (`writeMd` meta) inlines
+          writeListLine (ListParaItem level paras children)   = concatMap (`writeMd` meta) paras
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""

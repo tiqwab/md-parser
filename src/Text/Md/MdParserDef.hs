@@ -21,8 +21,9 @@ type RefTitle = Maybe String
 data MetaData = MetaData { references :: M.Map RefId (RefLink, RefTitle) }
   deriving (Show, Eq)
 
-data ListItem = ListLineItem [Inline]
-              | ListParaItem [Block]
+-- level, content. children
+data ListItem = ListLineItem Int [Inline] [ListItem]
+              | ListParaItem Int [Block] [ListItem]
   deriving (Show, Eq)
 
 -- TODO: list, blockquotes, codeblock
