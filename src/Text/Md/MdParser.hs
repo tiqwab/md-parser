@@ -89,7 +89,7 @@ pList char = P.try $ do
                           P.optional blankline
                           return $ List (toListP (firstItem:items))
 
--- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+-- FIXME: Should ignore soft break or first spaces of the following lines
 pListLineItem char = P.try $ do
   indents <- P.many pListIndent
   P.char char
@@ -99,7 +99,7 @@ pListLineItem char = P.try $ do
   blankline
   return $ ListLineItem (length indents + 1) inlines []
 
--- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+-- FIXME: Should ignore soft break or first spaces of the following lines
 pListParaItem char = P.try $ do
   indents <- P.many pListIndent
   P.char char
@@ -159,7 +159,7 @@ pLineBreak = P.try $ do
   return LineBreak
 
 pSoftBreak = P.try $ do
-  blankline >> P.notFollowedBy blankline
+  blankline >> skipSpaces >> P.notFollowedBy P.newline
   return SoftBreak
 
 pSpace = P.try $ do
