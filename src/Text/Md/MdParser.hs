@@ -54,34 +54,64 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
+----- List -----
+
 pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
 
 pListIndent = P.try (P.count 4 (P.char ' ')) <|> P.string "\t"
 
+insertL 0     val node@(ListLineItem l v cs) = ListLineItem l v (cs ++ [ ListLineItem (l+1) val [] ])
+insertL level val node@(ListLineItem l v cs) = ListLineItem l v newCs
+  where (formers, lastC) = splitAt (length cs - 1) cs
+        newCs            = formers ++ fmap (insertL (level-1) val) lastC
+
+insertP 0     val node@(ListParaItem l v cs) = ListParaItem l v (cs ++ [ ListParaItem (l+1) val [] ])
+insertP level val node@(ListParaItem l v cs) = ListParaItem l v newCs
+  where (formers, lastC) = splitAt (length cs - 1) cs
+        newCs            = formers ++ fmap (insertP (level-1) val) lastC
+
+toListL items = foldl summarize (ListLineItem 0 [NullL] []) items
+  where summarize node (ListLineItem l v cs) = insertL (l-1) v node
+
+toListP items = foldl summarize (ListParaItem 0 [NullB] []) items
+  where summarize node (ListParaItem l v cs) = insertP (l-1) v node
+
+-- TODO: summarize L and P
 pList char = P.try $ do
-  let pItem =  P.try (pListLineItem char <* P.notFollowedBy (P.try (blankline *> P.string [char]) <|> (blankline *> pListIndent)))
+  let pItem =  P.try (pListLineItem char <* P.notFollowedBy (P.try (blankline *> P.string [char]) <|> (blankline *> P.many1 spaceChar)))
            <|> pListParaItem char
   firstItem <- pItem
-  items <- case firstItem of
-    ListLineItem _ -> P.many (pListLineItem char <* P.notFollowedBy (blankline *> P.char char))
-    ListParaItem _ -> P.many (pListParaItem char)
-  P.optional blankline
-  return $ List (firstItem:items)
+  case firstItem of
+    ListLineItem {} -> do items <- P.many (pListLineItem char <* P.notFollowedBy (blankline *> P.char char))
+                          P.optional blankline
+                          return $ List (toListL (firstItem:items))
+    ListParaItem {} -> do items <- P.many (pListParaItem char)
+                          P.optional blankline
+                          return $ List (toListP (firstItem:items))
 
--- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+-- FIXME: Should ignore soft break or first spaces of the following lines
 pListLineItem char = P.try $ do
+  indents <- P.many pListIndent
   P.char char
-  P.many1 spaceChar
-  inlines <- P.many1 (P.notFollowedBy (blankline *> P.char char) >> parser)
+  spaceSep <- P.many1 (P.char ' ')
+  guard $ length spaceSep <= 3
+  inlines <- P.many1 (P.notFollowedBy (blankline *> P.optional (P.many pListIndent) *> P.char char) >> parser)
   blankline
-  return $ ListLineItem inlines
+  return $ ListLineItem (length indents + 1) inlines []
 
--- FIXME: Should ignore soft break or first spaces the following lines in paragraphs
+-- FIXME: Should ignore soft break or first spaces of the following lines
 pListParaItem char = P.try $ do
+  indents <- P.many pListIndent
   P.char char
-  P.many1 spaceChar
-  content <- P.sepBy (P.notFollowedBy (P.char char) >> pParagraph) pListIndent
-  return $ ListParaItem content
+  spaceSep <- P.many1 (P.char ' ')
+  guard $ length spaceSep <= 3
+  let pIndent   = P.count (length indents) pListIndent
+      pSpaceSep = P.count (length spaceSep + 1) (P.char ' ')
+  firstContent <- pParagraph
+  followingContent <- P.many (P.notFollowedBy (P.many pListIndent *> P.char char) *> pIndent *> pSpaceSep *> P.notFollowedBy (P.char char) *> pParagraph)
+  return $ ListParaItem (length indents + 1) (firstContent : followingContent) []
+
+----- List -----
 
 addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
@@ -129,7 +159,7 @@ pLineBreak = P.try $ do
   return LineBreak
 
 pSoftBreak = P.try $ do
-  blankline >> P.notFollowedBy blankline
+  blankline >> skipSpaces >> P.notFollowedBy P.newline
   return SoftBreak
 
 pSpace = P.try $ do
@@ -196,9 +226,18 @@ instance WriteMd Document where
 instance WriteMd Block where
   writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
   writeMd (BlockHtml str) meta        = str
-  writeMd (List items) meta           = hList $ map writeListLine items
-    where writeListLine (ListLineItem inlines) = concatMap (`writeMd` meta) inlines
-          writeListLine (ListParaItem paras)   = concatMap (`writeMd` meta) paras
+  writeMd (List item@(ListLineItem {})) meta = toStrL item
+    where toStrL node = toLinesL node
+          toLinesL node@(ListLineItem 0 _ cs) = "<ul>" ++ concatMap toLinesL cs ++ "</ul>"
+          toLinesL node@(ListLineItem l v []) = "<li>" ++ toLineL node ++ "</li>"
+          toLinesL node@(ListLineItem l v cs) = "<li>" ++ toLineL node ++ "<ul>" ++ concatMap toLinesL cs ++ "</ul>" ++ "</li>"
+          toLineL  node@(ListLineItem l v cs) = concatMap (`writeMd` meta) v
+  writeMd (List item@(ListParaItem {})) meta = toStrP item
+    where toStrP node = toLinesP node
+          toLinesP node@(ListParaItem 0 _ cs) = "<ul>" ++ concatMap toLinesP cs ++ "</ul>"
+          toLinesP node@(ListParaItem l v []) = "<li>" ++ toLineP node ++ "</li>"
+          toLinesP node@(ListParaItem l v cs) = "<li>" ++ toLineP node ++ "<ul>" ++ concatMap toLinesP cs ++ "</ul>" ++ "</li>"
+          toLineP  node@(ListParaItem l v cs) = concatMap (`writeMd` meta) v
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""
