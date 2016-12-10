@@ -30,7 +30,7 @@ data ListItem = ListLineItem Int [Inline] [ListItem]
 data Block = Header Int [Inline]
            | BlockHtml String
            | HorizontalRule
-           | List [ListItem]
+           | List ListItem
            | Paragraph [Inline]
            | NullB
            deriving (Show, Eq)
