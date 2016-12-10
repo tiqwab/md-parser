@@ -43,6 +43,7 @@ spec = do
       parseMarkdown "prev para\n\n- one\n\n- two\n\nfollowing para\n\n" `shouldBe` "<div><p>prev para</p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>following para</p></div>"
       parseMarkdown "- one\ntwo\n\n- three\n  four\n\n" `shouldBe` "<div><ul><li><p>one two</p></li><li><p>three  four</p></li></ul></div>"
       parseMarkdown "-   one\n\n    two\n\n    three\n\n-   four\n\n    five\n\n" `shouldBe` "<div><ul><li><p>one</p><p>two</p><p>three</p></li><li><p>four</p><p>five</p></li></ul></div>"
+      parseMarkdown "- one\n  two\n\n  three\n  four\n\n- five\n  six\n\n" `shouldBe` "<div><ul><li><p>one  two</p><p>three  four</p></li><li><p>five  six</p></li></ul></div>"
 
     it "parses to list with different levels" $ do
       parseMarkdown "- one\n- two\n    - three\n        - four\n    - five\n- six\n    - seven\n\n" `shouldBe` "<div><ul><li>one</li><li>two<ul><li>three<ul><li>four</li></ul></li><li>five</li></ul></li><li>six<ul><li>seven</li></ul></li></ul></div>"

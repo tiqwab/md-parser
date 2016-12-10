@@ -78,7 +78,7 @@ toListP items = foldl summarize (ListParaItem 0 [NullB] []) items
 
 -- TODO: summarize L and P
 pList char = P.try $ do
-  let pItem =  P.try (pListLineItem char <* P.notFollowedBy (P.try (blankline *> P.string [char]) <|> (blankline *> pListIndent)))
+  let pItem =  P.try (pListLineItem char <* P.notFollowedBy (P.try (blankline *> P.string [char]) <|> (blankline *> P.many1 spaceChar)))
            <|> pListParaItem char
   firstItem <- pItem
   case firstItem of
