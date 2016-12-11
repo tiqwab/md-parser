@@ -47,6 +47,10 @@ spec = do
       parseMarkdown "- one\n- two\n    - three\n        - four\n    - five\n- six\n    - seven\n\n" `shouldBe` "<div><ul><li>one</li><li>two<ul><li>three<ul><li>four</li></ul></li><li>five</li></ul></li><li>six<ul><li>seven</li></ul></li></ul></div>"
       parseMarkdown "- one\n\n- two\n\n  three\n\n    - four\n\n" `shouldBe` "<div><ul><li><p>one</p></li><li><p>two</p><p>three</p><ul><li><p>four</p></li></ul></li></ul></div>"
 
+    it "parses to code blocks" $ do
+      parseMarkdown "```\none\ntwo  & three\n\nfour&quot;\n```\n\n" `shouldBe` "<div><pre><code>one\ntwo  &amp; three\n\nfour&quot;</code></pre></div>"
+      parseMarkdown "```\n**one** and `two`\n```\n\n" `shouldBe` "<div><pre><code>**one** and `two`</code></pre></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"

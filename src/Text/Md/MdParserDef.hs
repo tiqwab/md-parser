@@ -26,16 +26,16 @@ data ListItem = ListLineItem Int [Inline] [ListItem]
               | ListParaItem Int [Block] [ListItem]
   deriving (Show, Eq)
 
--- TODO: list, blockquotes, codeblock
+-- TODO: list, blockquotes
 data Block = Header Int [Inline]
            | BlockHtml String
            | HorizontalRule
            | List ListItem
+           | CodeBlock [Inline]
            | Paragraph [Inline]
            | NullB
            deriving (Show, Eq)
 
--- TODO: (math)
 data Inline = LineBreak
             | SoftBreak
             | Space

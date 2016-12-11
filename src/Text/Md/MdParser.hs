@@ -30,6 +30,7 @@ instance ReadMd Block where
                     , pHorizontalRule
                     , pListBlock
                     , pReference
+                    , pCodeBlock
                     , pParagraph
                     ]
            <?> "block"
@@ -131,6 +132,17 @@ pReference = P.try $ do
   mapM_ (P.updateState . addRef) refs
   return NullB
 
+----- Code Block -----
+
+pCodeBlock = P.try $ do
+  P.string "```" >> blankline
+  xs <- P.many (P.notFollowedBy (P.newline >> P.string "```") >> pStrWithHtmlEscape)
+  P.newline >> P.string "```"
+  blanklinesBetweenBlock
+  return $ CodeBlock xs
+
+----- Code Block -----
+
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
   inlines <- P.many1 parser
@@ -199,10 +211,12 @@ pStr = P.try $ do
   str <- P.many1 P.alphaNum
   return $ Str str
 
+pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> pSingleStr
+  where pSingleStr = P.anyChar >>= (\x -> return $ Str [x])
+
 pInlineCode = P.try $ do
-  let pSingleStr = P.anyChar >>= (\x -> return $ Str [x])
   start <- P.many1 $ P.try (P.char '`')
-  codes <- P.manyTill (P.try pHtmlEscape <|> pSingleStr) (P.try (P.string start))
+  codes <- P.manyTill pStrWithHtmlEscape (P.try (P.string start))
   return $ InlineCode codes
 
 pInlineHtml = P.try $ do
@@ -237,6 +251,7 @@ instance WriteMd Block where
           toLinesP node@(ListParaItem l v cs) = "<li>" ++ toLineP node ++ "<ul>" ++ concatMap toLinesP cs ++ "</ul>" ++ "</li>"
           toLineP  node@(ListParaItem l v cs) = concatMap (`writeMd` meta) v
   writeMd HorizontalRule meta         = "<hr />"
+  writeMd (CodeBlock inlines) meta    = "<pre><code>" ++ concatMap (`writeMd` meta) inlines ++ "</code></pre>"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""
 
