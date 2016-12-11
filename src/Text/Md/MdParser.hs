@@ -5,19 +5,19 @@ module Text.Md.MdParser
 where
 
 import           Control.Monad
+import qualified Data.Map                      as M
+import           Data.Maybe                    (fromMaybe)
 import           Debug.Trace
-import           Data.Maybe (fromMaybe)
 import           System.IO
 import qualified Text.HTML.TagSoup             as TS
 import           Text.Md.HtmlParser
+import           Text.Md.HtmlTags
 import           Text.Md.MdParserDef
 import           Text.Md.ParseUtils
-import           Text.Md.HtmlTags
 import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
                                                 (<|>))
 import qualified Text.Parsec                   as P
-import qualified Text.ParserCombinators.Parsec as P hiding (try, runParser)
-import qualified Data.Map as M
+import qualified Text.ParserCombinators.Parsec as P hiding (runParser, try)
 
 instance ReadMd Document where
   parser = do blocks <- P.manyTill parser P.eof
@@ -89,7 +89,6 @@ pList char = P.try $ do
                           P.optional blankline
                           return $ List (toListP (firstItem:items))
 
--- FIXME: Should ignore soft break or first spaces of the following lines
 pListLineItem char = P.try $ do
   indents <- P.many pListIndent
   P.char char
@@ -99,7 +98,6 @@ pListLineItem char = P.try $ do
   blankline
   return $ ListLineItem (length indents + 1) inlines []
 
--- FIXME: Should ignore soft break or first spaces of the following lines
 pListParaItem char = P.try $ do
   indents <- P.many pListIndent
   P.char char
