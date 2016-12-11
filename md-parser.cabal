@@ -15,8 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-                     , Text.Md.MdParserDef
+  exposed-modules:     Text.Md.MdParserDef
                      , Text.Md.MdParser
                      , Text.Md.HtmlParser
                      , Text.Md.ParseUtils
@@ -31,7 +30,7 @@ library
                      , hspec
   default-language:    Haskell2010
 
-executable md-parser-exe
+executable mdparse
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
