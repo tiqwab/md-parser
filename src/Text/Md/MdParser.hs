@@ -38,6 +38,8 @@ instance ReadMd Block where
 blanklineBetweenBlock  = blankline *> P.many (P.try blankline)
 blanklinesBetweenBlock = blankline *> blankline *> P.many (P.try blankline)
 
+----- Header -----
+
 pHeader = P.try $ do
   level <- length <$> P.many1 (P.char '#')
   skipSpaces
@@ -45,7 +47,15 @@ pHeader = P.try $ do
   blanklinesBetweenBlock
   return $ Header level inlines
 
+----- Header -----
+
+----- Html Block -----
+
 pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklinesBetweenBlock
+
+----- Html Block -----
+
+----- HorizontalRule -----
 
 pHorizontalRule = P.try $ P.choice [pBorder '-', pBorder '*', pBorder '_']
 
@@ -54,6 +64,8 @@ pBorder char = P.try $ do
   blanklinesBetweenBlock
   guard $ length chars >= 3
   return HorizontalRule
+
+----- Horizontal Rule -----
 
 ----- List -----
 
@@ -112,13 +124,14 @@ pListParaItem char = P.try $ do
 
 ----- List -----
 
+----- Reference -----
+
 addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
   where oldMeta      = metadata state
         newMeta      = oldMeta { references = newRefs }
         originalRefs = references . metadata $ state
         newRefs      = M.insert refId (refLink, refTitle) originalRefs
 
--- TODO: Parse title
 pReference = P.try $ do
   let pOneRef = do refId <- pEnclosed "[" "]"
                    P.char ':'
@@ -132,6 +145,8 @@ pReference = P.try $ do
   mapM_ (P.updateState . addRef) refs
   return NullB
 
+----- Reference -----
+
 ----- Code Block -----
 
 pCodeBlock = P.try $ do
@@ -143,11 +158,15 @@ pCodeBlock = P.try $ do
 
 ----- Code Block -----
 
+----- Paragraph -----
+
 pParagraph = P.try $ do
   -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
   inlines <- P.many1 parser
   blanklinesBetweenBlock
   return $ Paragraph inlines
+
+----- Paragraph -----
 
 instance ReadMd Inline where
   parser = P.choice [ pLineBreak

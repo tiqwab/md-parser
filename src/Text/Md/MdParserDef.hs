@@ -7,9 +7,11 @@ where
 import           Text.Parsec (Parsec, ParsecT, Stream)
 import qualified Data.Map as M
 
+-- | Intermediate data structure between markdown and html
 data Document = Document [Block] MetaData
   deriving (Show, Eq)
 
+-- | Parser state used in the conversion of markdown to html
 data ParseContext = ParseContext { metadata :: MetaData }
   deriving (Show, Eq)
 
@@ -18,9 +20,11 @@ defContext = ParseContext { metadata = MetaData M.empty }
 type RefId    = String
 type RefLink  = String
 type RefTitle = Maybe String
-data MetaData = MetaData { references :: M.Map RefId (RefLink, RefTitle) }
+data MetaData = MetaData { references :: M.Map RefId (RefLink, RefTitle) -- info of reference links
+                         }
   deriving (Show, Eq)
 
+-- | Tree node of List. List block consists of ListItems.
 -- level, content. children
 data ListItem = ListLineItem Int [Inline] [ListItem]
               | ListParaItem Int [Block] [ListItem]
@@ -48,8 +52,10 @@ data Inline = LineBreak
             | NullL
               deriving (Show, Eq)
 
+-- | Can be read as markdown
 class ReadMd a where
   parser :: Parsec String ParseContext a
 
+-- | Can be written to html codes
 class WriteMd a where
   writeMd :: a -> MetaData -> String
