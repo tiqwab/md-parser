@@ -183,13 +183,24 @@ instance ReadMd Inline where
                     ]
            <?> "inline"
 
+----- Line Break -----
+
 pLineBreak = P.try $ do
   P.count 2 (P.char ' ') >> blankline
   return LineBreak
 
+----- Line Break -----
+
+----- Soft Break -----
+
+-- | Parse soft break('\n').
+-- Skip a character at the beginning of the next line if necessary (such as in blockquotes).
 pSoftBreak = P.try $ do
-  blankline >> skipSpaces >> P.notFollowedBy P.newline
+  c <- lineStart <$> P.getState
+  blankline >> P.optional (P.char c) >> skipSpaces >> P.notFollowedBy P.newline
   return SoftBreak
+
+----- Soft Break -----
 
 pSpace = P.try $ do
   spaceChar >> skipSpaces

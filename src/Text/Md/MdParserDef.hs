@@ -12,10 +12,14 @@ data Document = Document [Block] MetaData
   deriving (Show, Eq)
 
 -- | Parser state used in the conversion of markdown to html
-data ParseContext = ParseContext { metadata :: MetaData }
+data ParseContext = ParseContext { metadata :: MetaData -- meta data of document
+                                 , lineStart :: Char -- character at the start of line
+                                 }
   deriving (Show, Eq)
 
-defContext = ParseContext { metadata = MetaData M.empty }
+defContext = ParseContext { metadata = MetaData M.empty
+                          , lineStart = '\0'
+                          }
 
 type RefId    = String
 type RefLink  = String
