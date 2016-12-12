@@ -31,6 +31,7 @@ instance ReadMd Block where
                     , pListBlock
                     , pReference
                     , pCodeBlock
+                    , pBlockQuote
                     , pParagraph
                     ]
            <?> "block"
@@ -158,6 +159,15 @@ pCodeBlock = P.try $ do
 
 ----- Code Block -----
 
+pBlockQuote = P.try $ do
+  let updateLineStart c context = context { lineStart = c }
+  P.char '>' >> skipSpaces
+  originalChar <- lineStart <$> P.getState
+  P.modifyState (updateLineStart '>')
+  block <- parser
+  P.modifyState (updateLineStart originalChar)
+  return $ BlockQuote block
+
 ----- Paragraph -----
 
 pParagraph = P.try $ do
@@ -282,6 +292,7 @@ instance WriteMd Block where
           toLineP  node@(ListParaItem l v cs) = concatMap (`writeMd` meta) v
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (CodeBlock inlines) meta    = "<pre><code>" ++ concatMap (`writeMd` meta) inlines ++ "</code></pre>"
+  writeMd (BlockQuote block) meta     = "<blockquote>" ++ (`writeMd` meta) block ++ "</blockquote>"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""
 

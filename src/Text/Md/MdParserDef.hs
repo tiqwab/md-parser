@@ -40,6 +40,7 @@ data Block = Header Int [Inline]
            | HorizontalRule
            | List ListItem
            | CodeBlock [Inline]
+           | BlockQuote Block
            | Paragraph [Inline]
            | NullB
            deriving (Show, Eq)

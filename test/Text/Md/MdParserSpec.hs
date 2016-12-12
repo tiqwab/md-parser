@@ -51,6 +51,10 @@ spec = do
       parseMarkdown "```\none\ntwo  & three\n\nfour&quot;\n```\n\n" `shouldBe` "<div><pre><code>one\ntwo  &amp; three\n\nfour&quot;</code></pre></div>"
       parseMarkdown "```\n**one** and `two`\n```\n\n" `shouldBe` "<div><pre><code>**one** and `two`</code></pre></div>"
 
+    it "parses to block quotes" $ do
+      parseMarkdown "prev para\n\n> aaa\n> bbb\n\nfollowing para\n\n" `shouldBe` "<div><p>prev para</p><blockquote><p>aaa bbb</p></blockquote><p>following para</p></div>"
+      parseMarkdown "> aaa\nbbb\n\n" `shouldBe` "<div><blockquote><p>aaa bbb</p></blockquote></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"
