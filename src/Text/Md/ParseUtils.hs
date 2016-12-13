@@ -3,18 +3,27 @@
 module Text.Md.ParseUtils
 where
 
+import Data.Maybe
 import Control.Monad
-import Text.Parsec
-import Text.ParserCombinators.Parsec hiding (try)
+import Text.Parsec (Stream, ParsecT, (<|>))
+import qualified Text.Parsec                   as P
+import qualified Text.ParserCombinators.Parsec as P hiding (runParser, try)
+import Text.Md.MdParserDef
 
-spaceChar :: Stream s m Char => ParsecT s st m Char
-spaceChar = char ' ' <|> char '\t'
+spaceChar :: Stream s m Char => ParsecT s ParseContext m Char
+spaceChar = P.char ' ' <|> P.char '\t'
 
-skipSpaces :: Stream s m Char => ParsecT s st m ()
-skipSpaces = skipMany spaceChar
+skipSpaces :: Stream s m Char => ParsecT s ParseContext m ()
+skipSpaces = P.skipMany spaceChar
 
-blankline :: Stream s m Char => ParsecT s st m Char
-blankline = skipSpaces >> newline
+blankline :: Stream s m Char => ParsecT s ParseContext m Char
+blankline = do
+  skipSpaces
+  c <- lineStart <$> P.getState
+  nl <- P.newline
+  quote <- P.optionMaybe (P.char c)
+  P.modifyState (\context -> context { isLastNewLineQuoted = isJust quote })
+  return nl
 
-blanklines :: Stream s m Char => ParsecT s st m String
-blanklines = many1 blankline
+blanklines :: Stream s m Char => ParsecT s ParseContext m String
+blanklines = P.many1 blankline

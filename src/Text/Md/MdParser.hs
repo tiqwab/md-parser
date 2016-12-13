@@ -161,12 +161,16 @@ pCodeBlock = P.try $ do
 
 pBlockQuote = P.try $ do
   let updateLineStart c context = context { lineStart = c }
+  let pFollowingBlock = do b <- isLastNewLineQuoted <$> P.getState
+                           guard b
+                           parser
   P.char '>' >> skipSpaces
   originalChar <- lineStart <$> P.getState
   P.modifyState (updateLineStart '>')
-  block <- parser
+  firstBlock <- parser
+  followingBlocks <- P.many pFollowingBlock
   P.modifyState (updateLineStart originalChar)
-  return $ BlockQuote block
+  return $ BlockQuote (firstBlock : followingBlocks)
 
 ----- Paragraph -----
 
@@ -203,11 +207,9 @@ pLineBreak = P.try $ do
 
 ----- Soft Break -----
 
--- | Parse soft break('\n').
--- Skip a character at the beginning of the next line if necessary (such as in blockquotes).
+-- | Parse soft break('\n')
 pSoftBreak = P.try $ do
-  c <- lineStart <$> P.getState
-  blankline >> P.optional (P.char c) >> skipSpaces >> P.notFollowedBy P.newline
+  blankline >> skipSpaces >> P.notFollowedBy P.newline
   return SoftBreak
 
 ----- Soft Break -----
@@ -292,7 +294,7 @@ instance WriteMd Block where
           toLineP  node@(ListParaItem l v cs) = concatMap (`writeMd` meta) v
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (CodeBlock inlines) meta    = "<pre><code>" ++ concatMap (`writeMd` meta) inlines ++ "</code></pre>"
-  writeMd (BlockQuote block) meta     = "<blockquote>" ++ (`writeMd` meta) block ++ "</blockquote>"
+  writeMd (BlockQuote blocks) meta    = "<blockquote>" ++ concatMap (`writeMd` meta) blocks ++ "</blockquote>"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""
 
