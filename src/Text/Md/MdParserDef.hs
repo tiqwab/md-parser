@@ -12,10 +12,16 @@ data Document = Document [Block] MetaData
   deriving (Show, Eq)
 
 -- | Parser state used in the conversion of markdown to html
-data ParseContext = ParseContext { metadata :: MetaData }
+data ParseContext = ParseContext { metadata :: MetaData -- meta data of document
+                                 , lineStart :: Char -- character at the start of line
+                                 , isLastNewLineQuoted :: Bool -- last newline is quoted?
+                                 }
   deriving (Show, Eq)
 
-defContext = ParseContext { metadata = MetaData M.empty }
+defContext = ParseContext { metadata = MetaData M.empty
+                          , lineStart = '\0'
+                          , isLastNewLineQuoted = False
+                          }
 
 type RefId    = String
 type RefLink  = String
@@ -36,6 +42,7 @@ data Block = Header Int [Inline]
            | HorizontalRule
            | List ListItem
            | CodeBlock [Inline]
+           | BlockQuote [Block]
            | Paragraph [Inline]
            | NullB
            deriving (Show, Eq)

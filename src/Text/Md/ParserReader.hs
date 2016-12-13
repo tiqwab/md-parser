@@ -45,5 +45,11 @@ toStr node = toLines node
 
 ----------
 
+pBlockQuote :: Parsec String () String
+pBlockQuote = concat <$> P.many1 pStr
+  where pStr = P.many1 P.alphaNum <|> P.string " " <|> (P.newline >>= \x -> P.optional (P.char '>') >>= \_ -> return [x])
+
+----------
+
 -- P.many (parser h)
 main = return ()

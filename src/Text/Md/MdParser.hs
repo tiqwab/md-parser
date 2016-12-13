@@ -31,6 +31,7 @@ instance ReadMd Block where
                     , pListBlock
                     , pReference
                     , pCodeBlock
+                    , pBlockQuote
                     , pParagraph
                     ]
            <?> "block"
@@ -150,13 +151,30 @@ pReference = P.try $ do
 ----- Code Block -----
 
 pCodeBlock = P.try $ do
-  P.string "```" >> blankline
-  xs <- P.many (P.notFollowedBy (P.newline >> P.string "```") >> pStrWithHtmlEscape)
-  P.newline >> P.string "```"
+  P.string "```" >> newlineQuote
+  xs <- P.many (P.notFollowedBy (newlineQuote >> P.string "```") >> pStrWithHtmlEscape)
+  newlineQuote >> P.string "```"
   blanklinesBetweenBlock
   return $ CodeBlock xs
 
 ----- Code Block -----
+
+----- BlockQuote -----
+
+pBlockQuote = P.try $ do
+  let updateLineStart c context = context { lineStart = c }
+  let pFollowingBlock = do b <- isLastNewLineQuoted <$> P.getState
+                           guard b
+                           parser
+  P.char '>' >> skipSpaces
+  originalChar <- lineStart <$> P.getState
+  P.modifyState (updateLineStart '>')
+  firstBlock <- parser
+  followingBlocks <- P.many pFollowingBlock
+  P.modifyState (updateLineStart originalChar)
+  return $ BlockQuote (firstBlock : followingBlocks)
+
+----- BlockQuote -----
 
 ----- Paragraph -----
 
@@ -183,13 +201,22 @@ instance ReadMd Inline where
                     ]
            <?> "inline"
 
+----- Line Break -----
+
 pLineBreak = P.try $ do
   P.count 2 (P.char ' ') >> blankline
   return LineBreak
 
+----- Line Break -----
+
+----- Soft Break -----
+
+-- | Parse soft break('\n')
 pSoftBreak = P.try $ do
   blankline >> skipSpaces >> P.notFollowedBy P.newline
   return SoftBreak
+
+----- Soft Break -----
 
 pSpace = P.try $ do
   spaceChar >> skipSpaces
@@ -226,12 +253,12 @@ pEnclosedP begin end = P.between pBegin pEnd
         pEnd   = P.string end
 
 pStr = P.try $ do
-  -- str <- P.many1 (P.notFollowedBy pMark >> P.anyChar)
   str <- P.many1 P.alphaNum
   return $ Str str
 
-pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> pSingleStr
-  where pSingleStr = P.anyChar >>= (\x -> return $ Str [x])
+pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> P.try pNewlineQuote <|> pSingleStr
+  where pNewlineQuote = newlineQuote >>= (\x -> return $ Str [x])
+        pSingleStr    = P.anyChar >>= (\x -> return $ Str [x])
 
 pInlineCode = P.try $ do
   start <- P.many1 $ P.try (P.char '`')
@@ -271,6 +298,7 @@ instance WriteMd Block where
           toLineP  node@(ListParaItem l v cs) = concatMap (`writeMd` meta) v
   writeMd HorizontalRule meta         = "<hr />"
   writeMd (CodeBlock inlines) meta    = "<pre><code>" ++ concatMap (`writeMd` meta) inlines ++ "</code></pre>"
+  writeMd (BlockQuote blocks) meta    = "<blockquote>" ++ concatMap (`writeMd` meta) blocks ++ "</blockquote>"
   writeMd (Paragraph inlines) meta    = "<p>" ++ concatMap (`writeMd` meta) inlines ++ "</p>"
   writeMd NullB meta                  = ""
 

@@ -51,6 +51,19 @@ spec = do
       parseMarkdown "```\none\ntwo  & three\n\nfour&quot;\n```\n\n" `shouldBe` "<div><pre><code>one\ntwo  &amp; three\n\nfour&quot;</code></pre></div>"
       parseMarkdown "```\n**one** and `two`\n```\n\n" `shouldBe` "<div><pre><code>**one** and `two`</code></pre></div>"
 
+    it "parses to block quotes" $ do
+      parseMarkdown "prev para\n\n> aaa\n> bbb\n\nfollowing para\n\n" `shouldBe` "<div><p>prev para</p><blockquote><p>aaa bbb</p></blockquote><p>following para</p></div>"
+      parseMarkdown "> aaa\nbbb\n\n" `shouldBe` "<div><blockquote><p>aaa bbb</p></blockquote></div>"
+
+    it "parses to block quote with multiple paragraphs" $ do
+      parseMarkdown ">one\n>two\n>\n>three\n>\n>four\n>five\n\nfollowing para\n\n" `shouldBe` "<div><blockquote><p>one two</p><p>three</p><p>four five</p></blockquote><p>following para</p></div>"
+
+    -- To parse blocks, space is necessary after '>'
+    it "parses to block quote contains other kinds of blocks" $ do
+      parseMarkdown "> # head1\n>\n> - one\n> - two\n>     - three\n\n" `shouldBe` "<div><blockquote><h1>head1</h1><ul><li>one</li><li>two<ul><li>three</li></ul></li></ul></blockquote></div>"
+      -- FIXME: Cannot parse html with newline
+      parseMarkdown "> ```\n> code1\n> code2\n> ```\n>\n> ---\n>\n> <div>html content</div>\n\n" `shouldBe` "<div><blockquote><pre><code>code1\ncode2</code></pre><hr /><div>html content</div></blockquote></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"
