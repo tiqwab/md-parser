@@ -151,9 +151,9 @@ pReference = P.try $ do
 ----- Code Block -----
 
 pCodeBlock = P.try $ do
-  P.string "```" >> blankline
-  xs <- P.many (P.notFollowedBy (P.newline >> P.string "```") >> pStrWithHtmlEscape)
-  P.newline >> P.string "```"
+  P.string "```" >> newlineQuote
+  xs <- P.many (P.notFollowedBy (newlineQuote >> P.string "```") >> pStrWithHtmlEscape)
+  newlineQuote >> P.string "```"
   blanklinesBetweenBlock
   return $ CodeBlock xs
 
@@ -253,12 +253,12 @@ pEnclosedP begin end = P.between pBegin pEnd
         pEnd   = P.string end
 
 pStr = P.try $ do
-  -- str <- P.many1 (P.notFollowedBy pMark >> P.anyChar)
   str <- P.many1 P.alphaNum
   return $ Str str
 
-pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> pSingleStr
-  where pSingleStr = P.anyChar >>= (\x -> return $ Str [x])
+pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> P.try pNewlineQuote <|> pSingleStr
+  where pNewlineQuote = newlineQuote >>= (\x -> return $ Str [x])
+        pSingleStr    = P.anyChar >>= (\x -> return $ Str [x])
 
 pInlineCode = P.try $ do
   start <- P.many1 $ P.try (P.char '`')
