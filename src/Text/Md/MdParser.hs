@@ -159,6 +159,8 @@ pCodeBlock = P.try $ do
 
 ----- Code Block -----
 
+----- BlockQuote -----
+
 pBlockQuote = P.try $ do
   let updateLineStart c context = context { lineStart = c }
   let pFollowingBlock = do b <- isLastNewLineQuoted <$> P.getState
@@ -171,6 +173,8 @@ pBlockQuote = P.try $ do
   followingBlocks <- P.many pFollowingBlock
   P.modifyState (updateLineStart originalChar)
   return $ BlockQuote (firstBlock : followingBlocks)
+
+----- BlockQuote -----
 
 ----- Paragraph -----
 

@@ -21,8 +21,9 @@ blankline = do
   skipSpaces
   c <- lineStart <$> P.getState
   nl <- P.newline
-  quote <- P.optionMaybe (P.char c)
-  P.modifyState (\context -> context { isLastNewLineQuoted = isJust quote })
+  isQuoted <- isJust <$> P.optionMaybe (P.char c)
+  P.modifyState (\context -> context { isLastNewLineQuoted = isQuoted })
+  when isQuoted (P.optional spaceChar)
   return nl
 
 blanklines :: Stream s m Char => ParsecT s ParseContext m String

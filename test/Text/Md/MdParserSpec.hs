@@ -58,6 +58,12 @@ spec = do
     it "parses to block quote with multiple paragraphs" $ do
       parseMarkdown ">one\n>two\n>\n>three\n>\n>four\n>five\n\nfollowing para\n\n" `shouldBe` "<div><blockquote><p>one two</p><p>three</p><p>four five</p></blockquote><p>following para</p></div>"
 
+    -- To parse blocks, space is necessary after '>'
+    it "parses to block quote contains other kinds of blocks" $ do
+      parseMarkdown "> # head1\n>\n> - one\n> - two\n>     - three\n\n" `shouldBe` "<div><blockquote><h1>head1</h1><ul><li>one</li><li>two<ul><li>three</li></ul></li></ul></blockquote></div>"
+      -- FIXME: Cannot parse code block
+      -- parseMarkdown "> ```\n> code\n> ```\n>\n> ---\n>\n> <div>html content</div>\n\n" `shouldBe` "<div><blockquote><pre><code>code</code></pre><hr /><div>html content</div></blockquote></div>"
+
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"
