@@ -16,15 +16,17 @@ spaceChar = P.char ' ' <|> P.char '\t'
 skipSpaces :: Stream s m Char => ParsecT s ParseContext m ()
 skipSpaces = P.skipMany spaceChar
 
-blankline :: Stream s m Char => ParsecT s ParseContext m Char
-blankline = do
-  skipSpaces
+newlineQuote :: Stream s m Char => ParsecT s ParseContext m Char
+newlineQuote = do
   c <- lineStart <$> P.getState
   nl <- P.newline
   isQuoted <- isJust <$> P.optionMaybe (P.char c)
   P.modifyState (\context -> context { isLastNewLineQuoted = isQuoted })
   when isQuoted (P.optional spaceChar)
   return nl
+
+blankline :: Stream s m Char => ParsecT s ParseContext m Char
+blankline = skipSpaces >> newlineQuote
 
 blanklines :: Stream s m Char => ParsecT s ParseContext m String
 blanklines = P.many1 blankline
