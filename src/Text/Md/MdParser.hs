@@ -52,7 +52,9 @@ pHeader = P.try $ do
 
 ----- Html Block -----
 
-pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklinesBetweenBlock
+pHtmlBlock = P.try $ do
+  let htmlParseContext = HtmlParseContext (P.anyChar >>= \x -> return (Str [x]))
+  pBlockElement htmlParseContext <* skipSpaces <* blanklinesBetweenBlock
 
 ----- Html Block -----
 

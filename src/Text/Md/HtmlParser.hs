@@ -3,7 +3,6 @@
 
 module Text.Md.HtmlParser (
     HtmlParseContext(..)
-  , pBlockElementDef
   , pBlockElement
   , pInlineElement
   , pHtmlEscape
@@ -21,11 +20,8 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
-data HtmlParseContext a = HtmlParseContext { parserText :: Parsec String ParseContext a }
-
-pBlockElementDef :: Parsec String ParseContext Block
-pBlockElementDef = pBlockElement $ HtmlParseContext (P.anyChar >>= \x -> return (Str [x]))
-
+data HtmlParseContext a = HtmlParseContext { parserText :: Parsec String ParseContext a -- parser used for text framed by html tags
+                                           }
 -- Parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
 -- without considering whether the top tag is actually block element or not.
 -- Assume that contents of the block element is escaped.
