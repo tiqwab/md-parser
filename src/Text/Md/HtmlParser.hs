@@ -54,8 +54,8 @@ pHtmlTag = do
   inside <- P.between (P.char '<') (P.char '>') (P.many1 (P.noneOf "<>"))
   let tags = TS.parseTags $ "<" ++ inside ++ ">"
   case length tags of
-    1 -> return (TS.renderTags tags, Just (head tags))
-    2 -> return (TS.renderTags tags, Nothing)
+    1 -> return (TS.renderTags tags, Just (head tags)) -- when the tag has any inside elements. e.g. '<div>'
+    2 -> return (TS.renderTags tags, Nothing)          -- when the tag has no inside elements. e.g. '<div />'
 
 render inlines tagStr stack context = liftM3 concatTags3 (return inlines) (return [Str tagStr]) (pHtmlElementInside stack context)
 concatTags2 a b = a ++ b
