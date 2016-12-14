@@ -20,46 +20,35 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (try)
 
+-- | ParseContext used to handle html input.
 data HtmlParseContext a = HtmlParseContext { parserText :: Parsec String ParseContext a -- parser used for text framed by html tags
                                            }
--- Parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
+-- | Parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
 -- without considering whether the top tag is actually block element or not.
--- Assume that contents of the block element is escaped.
 pBlockElement :: HtmlParseContext Inline -> Parsec String ParseContext Block
-pBlockElement context = P.try $ do
-  (tagStr, tagMaybe) <- pHtmlTag
-  case tagMaybe of
-    Just tag -> BlockHtml <$> liftM2 concatTags2 (return [Str tagStr]) (pBlockElementInside [tag] context)
-    Nothing  -> return $ BlockHtml [Str tagStr]
+pBlockElement context = BlockHtml <$> pHtmlElement context
 
-pBlockElementInside []    context = return [Str ""]
-pBlockElementInside stack context = P.try $ do
-  text <- P.many (P.notFollowedBy (P.char '<') >> parserText context)
-  (tagStr, tagMaybe) <- pHtmlTag
-  case tagMaybe of
-    Just tag -> case tag of
-      TS.TagOpen name _ -> render text tagStr (tag:stack) context
-      TS.TagClose name  -> render text tagStr (tail stack) context
-      TS.TagComment str -> render text tagStr stack context
-    Nothing  -> render text tagStr stack context
-
+-- | Parse html inline element.
+-- Its work is almost same as `pBlockElement` but return `InlineHtml`.
 pInlineElement :: HtmlParseContext Inline -> Parsec String ParseContext Inline
-pInlineElement context = P.try $ do
+pInlineElement context = InlineHtml <$> pHtmlElement context
+
+pHtmlElement context = P.try $ do
   (tagStr, tagMaybe) <- pHtmlTag
   case tagMaybe of
-    Just tag -> InlineHtml <$> liftM2 concatTags2 (return [Str tagStr]) (pInlineElementInside [tag] context)
-    Nothing  -> return $ InlineHtml [Str tagStr]
+    Just tag -> liftM2 concatTags2 (return [Str tagStr]) (pHtmlElementInside [tag] context)
+    Nothing  -> return [Str tagStr]
 
-pInlineElementInside []    context = return [Str ""]
-pInlineElementInside stack context = P.try $ do
+pHtmlElementInside []    context = return [Str ""]
+pHtmlElementInside stack context = P.try $ do
   inlines <- P.many (P.notFollowedBy (P.char '<') >> parserText context)
   (tagStr, tagMaybe) <- pHtmlTag
   case tagMaybe of
     Just tag -> case tag of
-      TS.TagOpen name _ -> renderInline inlines tagStr (tag:stack) context
-      TS.TagClose name  -> renderInline inlines tagStr (tail stack) context
-      TS.TagComment str -> renderInline inlines tagStr stack context
-    Nothing  -> renderInline inlines tagStr stack context
+      TS.TagOpen name _ -> render inlines tagStr (tag:stack) context
+      TS.TagClose name  -> render inlines tagStr (tail stack) context
+      TS.TagComment str -> render inlines tagStr stack context
+    Nothing  -> render inlines tagStr stack context
 
 pHtmlTag = do
   inside <- P.between (P.char '<') (P.char '>') (P.many1 (P.noneOf "<>"))
@@ -68,14 +57,11 @@ pHtmlTag = do
     1 -> return (TS.renderTags tags, Just (head tags))
     2 -> return (TS.renderTags tags, Nothing)
 
-render text tagStr stack context = liftM3 concatTags3 (return text) (return [Str tagStr]) (pBlockElementInside stack context)
-
-renderInline inlines tagStr stack context = liftM3 concatTags3 (return inlines) (return [Str tagStr]) (pInlineElementInside stack context)
-
+render inlines tagStr stack context = liftM3 concatTags3 (return inlines) (return [Str tagStr]) (pHtmlElementInside stack context)
 concatTags2 a b = a ++ b
-
 concatTags3 a b c = a ++ b ++ c
 
+-- | Perform html escaping of '&', '<', '>', and '"'.
 pHtmlEscape :: Parsec String ParseContext Inline
 pHtmlEscape = do
   let pEscapedString        = P.choice (map (P.try . P.string . snd) escapePair)
