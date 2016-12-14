@@ -66,9 +66,12 @@ spec = do
 
     -- To parse blocks, space is necessary after '>'
     it "parses to block quote contains other kinds of blocks" $ do
+      -- head and list
       parseMarkdown "> # head1\n>\n> - one\n> - two\n>     - three\n\n" `shouldBe` "<div><blockquote><h1>head1</h1><ul><li>one</li><li>two<ul><li>three</li></ul></li></ul></blockquote></div>"
-      -- FIXME: Cannot parse html with newline
+      -- code blocks
       parseMarkdown "> ```\n> code1\n> code2\n> ```\n>\n> ---\n>\n> <div>html content</div>\n\n" `shouldBe` "<div><blockquote><pre><code>code1\ncode2</code></pre><hr /><div>html content</div></blockquote></div>"
+      -- html blocks
+      parseMarkdown "> <div class=\"a&b\">\n>   one & two\n> </div>\n\n" `shouldBe` "<div><blockquote><div class=\"a&amp;b\">\n  one &amp; two\n</div></blockquote></div>"
 
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
