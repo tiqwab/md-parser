@@ -24,6 +24,12 @@ spec = do
       `shouldBe`
       "<div><h1>header1</h1><p>para1</p><h2>header2</h2><h3>header3</h3></div>"
 
+    it "parse html block elements to blocks without framing by 'p' tag" $ do
+      parseMarkdown "line1\n\n<div id=\"header\">**line2**</div>\n\nline3\n\n" `shouldBe` "<div><p>line1</p><div id=\"header\">**line2**</div><p>line3</p></div>"
+      parseMarkdown "line1\n\n<div><ul><li>list1</li><li>list2</li>\n\n</ul></div>\n\nline3\n\n" `shouldBe` "<div><p>line1</p><div><ul><li>list1</li><li>list2</li>\n\n</ul></div><p>line3</p></div>"
+      -- attributes and text framed by tags are escaped.
+      parseMarkdown "<div class=\"a&b\">\n  one & two\n</div>\n\n" `shouldBe` "<div><div class=\"a&amp;b\">\n  one &amp; two\n</div></div>"
+
     it "parses to horizontal rule" $ do
       parseMarkdown "foobar\n\n---\n\nfoobar\n\n" `shouldBe` "<div><p>foobar</p><hr /><p>foobar</p></div>"
       parseMarkdown "foobar\n\n- -  - \n\nfoobar\n\n" `shouldBe` "<div><p>foobar</p><hr /><p>foobar</p></div>"
@@ -112,9 +118,3 @@ spec = do
     it "escape html" $ do
       parseMarkdown "Is this escaped? \"5 > 2 && 5 < 2\"\n\n" `shouldBe` "<div><p>Is this escaped? &quot;5 &gt; 2 &amp;&amp; 5 &lt; 2&quot;</p></div>"
       parseMarkdown "This is already escaped, &amp;, &lt;, &gt;, & &quot;\n\n" `shouldBe` "<div><p>This is already escaped, &amp;, &lt;, &gt;, &amp; &quot;</p></div>"
-
-    -- should parse markdown literals in html block elements? -> no, for now
-    -- should perform html escaping
-    it "parse html block elements to blocks without framing by 'p' tag" $ do
-      parseMarkdown "line1\n\n<div id=\"header\">**line2**</div>\n\nline3\n\n" `shouldBe` "<div><p>line1</p><div id=\"header\">**line2**</div><p>line3</p></div>"
-      parseMarkdown "line1\n\n<div><ul><li>list1</li><li>list2</li>\n\n</ul></div>\n\nline3\n\n" `shouldBe` "<div><p>line1</p><div><ul><li>list1</li><li>list2</li>\n\n</ul></div><p>line3</p></div>"

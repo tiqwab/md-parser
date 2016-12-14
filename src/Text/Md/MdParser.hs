@@ -52,8 +52,9 @@ pHeader = P.try $ do
 
 ----- Html Block -----
 
+-- | Parse a html block. Text inside html tags are escaped, but markdown literals are not active.
 pHtmlBlock = P.try $ do
-  let htmlParseContext = HtmlParseContext (P.anyChar >>= \x -> return (Str [x]))
+  let htmlParseContext = HtmlParseContext pStrWithHtmlEscape
   pBlockElement htmlParseContext <* skipSpaces <* blanklinesBetweenBlock
 
 ----- Html Block -----
