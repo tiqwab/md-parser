@@ -52,7 +52,10 @@ pHeader = P.try $ do
 
 ----- Html Block -----
 
-pHtmlBlock = P.try $ pBlockElementDef <* skipSpaces <* blanklinesBetweenBlock
+-- | Parse a html block. Text inside html tags are escaped, but markdown literals are not active.
+pHtmlBlock = P.try $ do
+  let htmlParseContext = HtmlParseContext pStrWithHtmlEscape
+  pBlockElement htmlParseContext <* skipSpaces <* blanklinesBetweenBlock
 
 ----- Html Block -----
 
@@ -265,6 +268,7 @@ pInlineCode = P.try $ do
   codes <- P.manyTill pStrWithHtmlEscape (P.try (P.string start))
   return $ InlineCode codes
 
+-- | Parse inline html. Inline markdown literals and html escaping are active.
 pInlineHtml = P.try $ do
   let context = HtmlParseContext parser :: HtmlParseContext Inline
   pInlineElement context
@@ -283,7 +287,7 @@ instance WriteMd Document where
 
 instance WriteMd Block where
   writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMap (`writeMd` meta) inlines ++ "</h" ++ show level ++ ">"
-  writeMd (BlockHtml str) meta        = str
+  writeMd (BlockHtml inlines) meta        = concatMap (`writeMd` meta) inlines
   writeMd (List item@(ListLineItem {})) meta = toStrL item
     where toStrL node = toLinesL node
           toLinesL node@(ListLineItem 0 _ cs) = "<ul>" ++ concatMap toLinesL cs ++ "</ul>"
