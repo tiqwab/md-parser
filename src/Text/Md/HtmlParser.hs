@@ -24,19 +24,19 @@ import qualified Text.ParserCombinators.Parsec as P hiding (try)
 data HtmlParseContext a = HtmlParseContext { parserText :: Parsec String ParseContext a }
 
 pBlockElementDef :: Parsec String ParseContext Block
-pBlockElementDef = pBlockElement $ HtmlParseContext P.anyChar
+pBlockElementDef = pBlockElement $ HtmlParseContext (P.anyChar >>= \x -> return (Str [x]))
 
 -- Parse html tags such as '<div><ul><li>list1</li><li>list2</li></ul></div>'
 -- without considering whether the top tag is actually block element or not.
 -- Assume that contents of the block element is escaped.
-pBlockElement :: HtmlParseContext Char -> Parsec String ParseContext Block
+pBlockElement :: HtmlParseContext Inline -> Parsec String ParseContext Block
 pBlockElement context = P.try $ do
   (tagStr, tagMaybe) <- pHtmlTag
   case tagMaybe of
-    Just tag -> BlockHtml <$> liftM2 concatTags2 (return tagStr) (pBlockElementInside [tag] context)
-    Nothing  -> return $ BlockHtml tagStr
+    Just tag -> BlockHtml <$> liftM2 concatTags2 (return [Str tagStr]) (pBlockElementInside [tag] context)
+    Nothing  -> return $ BlockHtml [Str tagStr]
 
-pBlockElementInside []    context = return ""
+pBlockElementInside []    context = return [Str ""]
 pBlockElementInside stack context = P.try $ do
   text <- P.many (P.notFollowedBy (P.char '<') >> parserText context)
   (tagStr, tagMaybe) <- pHtmlTag
@@ -72,7 +72,7 @@ pHtmlTag = do
     1 -> return (TS.renderTags tags, Just (head tags))
     2 -> return (TS.renderTags tags, Nothing)
 
-render text tagStr stack context = liftM3 concatTags3 (return text) (return tagStr) (pBlockElementInside stack context)
+render text tagStr stack context = liftM3 concatTags3 (return text) (return [Str tagStr]) (pBlockElementInside stack context)
 
 renderInline inlines tagStr stack context = liftM3 concatTags3 (return inlines) (return [Str tagStr]) (pInlineElementInside stack context)
 

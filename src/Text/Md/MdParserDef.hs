@@ -38,7 +38,7 @@ data ListItem = ListLineItem Int [Inline] [ListItem]
 
 -- TODO: list, blockquotes
 data Block = Header Int [Inline]
-           | BlockHtml String
+           | BlockHtml [Inline]
            | HorizontalRule
            | List ListItem
            | CodeBlock [Inline]
