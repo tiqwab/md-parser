@@ -4,6 +4,7 @@ module Text.Md.ParseUtils
 where
 
 import Data.Maybe
+import Debug.Trace
 import Control.Monad
 import Text.Parsec (Stream, ParsecT, (<|>))
 import qualified Text.Parsec                   as P
@@ -19,10 +20,13 @@ skipSpaces = P.skipMany spaceChar
 newlineQuote :: Stream s m Char => ParsecT s ParseContext m Char
 newlineQuote = do
   c <- lineStart <$> P.getState
+  level <- quoteLevel <$> P.getState
   nl <- P.newline
-  isQuoted <- isJust <$> P.optionMaybe (P.char c)
+  -- `P.optionMaybe (P.try (P.count level xxx))` parses no input if xxx does not occurs `level` times.
+  isQuoted <- isJust <$> P.optionMaybe (P.try (P.count level (P.char c <* P.optional spaceChar)))
+  -- consume quotes when `quote` does not occur `level` times
+  unless isQuoted (void (P.many (P.char c <* P.optional spaceChar)))
   P.modifyState (\context -> context { isLastNewLineQuoted = isQuoted })
-  when isQuoted (P.optional spaceChar)
   return nl
 
 blankline :: Stream s m Char => ParsecT s ParseContext m Char

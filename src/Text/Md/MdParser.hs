@@ -165,16 +165,22 @@ pCodeBlock = P.try $ do
 ----- BlockQuote -----
 
 pBlockQuote = P.try $ do
+  let plusQuoteLevel context = context { quoteLevel = quoteLevel context + 1 }
+      minusQuoteLevel context = context { quoteLevel = quoteLevel context - 1 }
   let updateLineStart c context = context { lineStart = c }
   let pFollowingBlock = do b <- isLastNewLineQuoted <$> P.getState
                            guard b
                            parser
   P.char '>' >> skipSpaces
   originalChar <- lineStart <$> P.getState
+  P.modifyState plusQuoteLevel
   P.modifyState (updateLineStart '>')
   firstBlock <- parser
   followingBlocks <- P.many pFollowingBlock
+  P.modifyState minusQuoteLevel
   P.modifyState (updateLineStart originalChar)
+  level <- quoteLevel <$> P.getState
+  when (level > 0) (P.modifyState (\context -> context { isLastNewLineQuoted = True }))
   return $ BlockQuote (firstBlock : followingBlocks)
 
 ----- BlockQuote -----

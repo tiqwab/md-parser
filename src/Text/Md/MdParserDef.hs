@@ -15,12 +15,14 @@ data Document = Document [Block] MetaData
 data ParseContext = ParseContext { metadata :: MetaData -- meta data of document
                                  , lineStart :: Char -- character at the start of line
                                  , isLastNewLineQuoted :: Bool -- last newline is quoted?
+                                 , quoteLevel :: Int -- depth of the current quote block
                                  }
   deriving (Show, Eq)
 
 defContext = ParseContext { metadata = MetaData M.empty
                           , lineStart = '\0'
                           , isLastNewLineQuoted = False
+                          , quoteLevel = 0
                           }
 
 type RefId    = String

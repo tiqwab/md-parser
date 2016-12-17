@@ -72,6 +72,9 @@ spec = do
       parseMarkdown "> ```\n> code1\n> code2\n> ```\n>\n> ---\n>\n> <div>html content</div>\n\n" `shouldBe` "<div><blockquote><pre><code>code1\ncode2</code></pre><hr /><div>html content</div></blockquote></div>"
       -- html blocks
       parseMarkdown "> <div class=\"a&b\">\n>   one & two\n> </div>\n\n" `shouldBe` "<div><blockquote><div class=\"a&amp;b\">\n  one &amp; two\n</div></blockquote></div>"
+      -- inner blockquotes
+      parseMarkdown "> one\n>\n> > two\n>\n> three\n\n" `shouldBe` "<div><blockquote><p>one</p><blockquote><p>two</p></blockquote><p>three</p></blockquote></div>"
+      parseMarkdown "> one\n>\n> oneone\n>\n> > # two\n> >\n> > twotwo\n\n" `shouldBe` "<div><blockquote><p>one</p><p>oneone</p><blockquote><h1>two</h1><p>twotwo</p></blockquote></blockquote></div>"
 
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
