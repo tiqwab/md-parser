@@ -260,19 +260,13 @@ pSpace = P.try $ do
 
 ----- Strong and emphasis -----
 
--- FIXME: Should parse emphasis as well as strong.
 -- | Parse a strong framed by two '*' or '_'.
-pStrong = P.try $ do
-  P.string "**"
-  inlines <- P.many1 (P.notFollowedBy (P.string "**") >> parser)
-  P.string "**"
-  return $ Strong inlines
+pStrong = P.try (P.choice [parserStrong "**", parserStrong "__"])
+  where parserStrong s = Strong <$> pEnclosedInline s s
 
-pEmphasis = P.try $ do
-  P.string "*"
-  inlines <- P.many1 (P.notFollowedBy (P.string "*") >> parser)
-  P.string "*"
-  return $ Emphasis inlines
+-- | Parse a emphasis framed by one '*' or '_'.
+pEmphasis = P.try (P.choice [parserEmphasis "*", parserEmphasis "_"])
+  where parserEmphasis s = Emphasis <$> pEnclosedInline s s
 
 ----- Strong and emphasis -----
 
@@ -297,12 +291,16 @@ pReferenceLink = P.try $ do
   refId <- pEnclosed "[" "]"
   return $ ReferenceLink text refId
 
-pEnclosed begin end = pEnclosedP begin end (P.many1 pNones)
+pEnclosed begin end = pEnclosedP begin end pNones
   where pNones = P.noneOf (begin ++ end)
 
-pEnclosedP begin end = P.between pBegin pEnd
-  where pBegin = P.string begin
-        pEnd   = P.string end
+pEnclosedInline begin end = pEnclosedP begin end parser
+
+pEnclosedP begin end parser = do
+  P.string begin
+  ps <- P.many1 (P.notFollowedBy (P.string end) >> parser)
+  P.string end
+  return ps
 
 ----- Link -----
 
