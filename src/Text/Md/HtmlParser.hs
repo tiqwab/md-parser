@@ -6,6 +6,7 @@ module Text.Md.HtmlParser (
   , pBlockElement
   , pInlineElement
   , pHtmlEscape
+  , pHtmlEscapeForce
 )
 where
 
@@ -73,5 +74,13 @@ pHtmlEscape = do
   case isEscaped of
     Just str -> Str <$> P.try pEscapedString
     Nothing  -> P.try (P.choice escapes <?> "html-parser")
+
+-- | Perform html escaping.
+-- Escape '&' even if it is a part of escaped phrases such as '&lt;'
+pHtmlEscapeForce :: Parsec String ParseContext Inline
+pHtmlEscapeForce = do
+  let escapes               = map escape escapePair
+      escape (raw, escaped) = P.string raw *> return (Str escaped)
+  P.try (P.choice escapes <?> "html-parser")
 
 escapePair = [("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"), ("\"", "&quot;")]

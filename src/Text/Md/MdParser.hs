@@ -169,7 +169,7 @@ pReference = P.try $ do
 -- | Parse a code block. Escape any '<', '>', '"', '&' characters inside blocks. FIXME
 pCodeBlock = P.try $ do
   P.string "```" >> newlineQuote
-  xs <- P.many (P.notFollowedBy (newlineQuote >> P.string "```") >> pStrWithHtmlEscape)
+  xs <- P.many (P.notFollowedBy (newlineQuote >> P.string "```") >> pStrWithHtmlEscapeForce)
   newlineQuote >> P.string "```"
   blanklinesBetweenBlock
   return $ CodeBlock xs
@@ -311,8 +311,14 @@ pStr = P.try $ do
   str <- P.many1 P.alphaNum
   return $ Str str
 
+-- FIXME: Summarize `pStrWithHtmlEscape` and `pStrWithHtmlEscapeForce`
 -- | Parse a string. Accept any marks as well as alphanums and perform html-escaping.
 pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> P.try pNewlineQuote <|> pSingleStr
+  where pNewlineQuote = newlineQuote >>= (\x -> return $ Str [x])
+        pSingleStr    = P.anyChar >>= (\x -> return $ Str [x])
+
+-- | Parse a string. Accept any marks as well as alphanums and perform html-escaping.
+pStrWithHtmlEscapeForce = P.try pHtmlEscapeForce <|> P.try pStr <|> P.try pNewlineQuote <|> pSingleStr
   where pNewlineQuote = newlineQuote >>= (\x -> return $ Str [x])
         pSingleStr    = P.anyChar >>= (\x -> return $ Str [x])
 
@@ -323,7 +329,7 @@ pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> P.try pNewlineQuote <|
 -- | Parse a inline code.
 pInlineCode = P.try $ do
   start <- P.many1 $ P.try (P.char '`')
-  codes <- P.manyTill pStrWithHtmlEscape (P.try (P.string start))
+  codes <- P.manyTill pStrWithHtmlEscapeForce (P.try (P.string start))
   return $ InlineCode codes
 
 ----- Inline code -----

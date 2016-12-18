@@ -54,7 +54,7 @@ spec = do
       parseMarkdown "- one\n\n- two\n\n  three\n\n    - four\n\n" `shouldBe` "<div><ul><li><p>one</p></li><li><p>two</p><p>three</p><ul><li><p>four</p></li></ul></li></ul></div>"
 
     it "parses to code blocks" $ do
-      parseMarkdown "```\none\ntwo  & three\n\nfour&quot;\n```\n\n" `shouldBe` "<div><pre><code>one\ntwo  &amp; three\n\nfour&quot;</code></pre></div>"
+      parseMarkdown "```\none\ntwo  & three\n\nfour&quot;\n```\n\n" `shouldBe` "<div><pre><code>one\ntwo  &amp; three\n\nfour&amp;quot;</code></pre></div>"
       parseMarkdown "```\n**one** and `two`\n```\n\n" `shouldBe` "<div><pre><code>**one** and `two`</code></pre></div>"
 
     it "parses to block quotes" $ do
@@ -109,7 +109,7 @@ spec = do
 
     it "parses inline codes" $ do
       parseMarkdown "one ` two   three `  four\n\n" `shouldBe` "<div><p>one <code>two   three</code> four</p></div>"
-      parseMarkdown "` one & two &amp; three `\n\n" `shouldBe` "<div><p><code>one &amp; two &amp; three</code></p></div>"
+      parseMarkdown "` one & two &amp; three `\n\n" `shouldBe` "<div><p><code>one &amp; two &amp;amp; three</code></p></div>"
       parseMarkdown "``` `two` three `four` ```\n\n" `shouldBe` "<div><p><code>`two` three `four`</code></p></div>"
 
     it "parse html inline elements and just show original text" $ do
