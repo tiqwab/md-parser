@@ -166,7 +166,7 @@ pReference = P.try $ do
 
 ----- Code block -----
 
--- | Parse a code block. Escape any '<', '>', '"', '&' characters inside blocks. FIXME
+-- | Parse a code block. Escape any '<', '>', '"', '&' characters inside blocks.
 pCodeBlock = P.try $ do
   P.string "```" >> newlineQuote
   xs <- P.many (P.notFollowedBy (newlineQuote >> P.string "```") >> pStrWithHtmlEscapeForce)
