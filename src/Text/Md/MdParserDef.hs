@@ -53,6 +53,7 @@ data Inline = LineBreak
             | SoftBreak
             | Space
             | Strong [Inline]
+            | Emphasis [Inline]
             | InlineLink String String (Maybe String)
             | ReferenceLink String RefId
             | InlineCode [Inline]

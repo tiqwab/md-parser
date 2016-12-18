@@ -79,6 +79,11 @@ spec = do
     it "parses to strong" $ do
       parseMarkdown "this is **strong**\n\n" `shouldBe` "<div><p>this is <strong>strong</strong></p></div>"
       parseMarkdown "this is **also\nstrong**\n\n" `shouldBe` "<div><p>this is <strong>also strong</strong></p></div>"
+      parseMarkdown "this is **str\\*\\*ong**\n\n" `shouldBe` "<div><p>this is <strong>str**ong</strong></p></div>"
+
+    it "parses to emphasis" $ do
+      parseMarkdown "this is *emphasis*\n\n" `shouldBe` "<div><p>this is <em>emphasis</em></p></div>"
+      parseMarkdown "this is *e\\*m*\n\n" `shouldBe` "<div><p>this is <em>e*m</em></p></div>"
 
     it "parses to inline link" $ do
       parseMarkdown "this is [inline link](http://foo.com \"inline-link\").\n\n" `shouldBe` "<div><p>this is <a href=\"http://foo.com\" title=\"inline-link\">inline link</a>.</p></div>"

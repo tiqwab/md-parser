@@ -220,6 +220,7 @@ instance ReadMd Inline where
                     , pSoftBreak
                     , pSpace
                     , pStrong
+                    , pEmphasis
                     , pInlineLink
                     , pInlineCode
                     , pInlineHtml
@@ -257,18 +258,23 @@ pSpace = P.try $ do
 
 ----- Space -----
 
------ Strong -----
+----- Strong and emphasis -----
 
 -- FIXME: Should parse emphasis as well as strong.
 -- | Parse a strong framed by two '*' or '_'.
 pStrong = P.try $ do
   P.string "**"
-  -- inlines <- P.many1 parser
   inlines <- P.many1 (P.notFollowedBy (P.string "**") >> parser)
   P.string "**"
   return $ Strong inlines
 
------ Strong -----
+pEmphasis = P.try $ do
+  P.string "*"
+  inlines <- P.many1 (P.notFollowedBy (P.string "*") >> parser)
+  P.string "*"
+  return $ Emphasis inlines
+
+----- Strong and emphasis -----
 
 ----- Link -----
 
@@ -380,6 +386,7 @@ instance WriteMd Inline where
   writeMd SoftBreak meta                           = " "
   writeMd Space meta                               = " "
   writeMd (Strong inlines) meta                    = "<strong>" ++ concatMap (`writeMd` meta) inlines ++ "</strong>"
+  writeMd (Emphasis inlines) meta                  = "<em>" ++ concatMap (`writeMd` meta) inlines ++ "</em>"
   writeMd (ReferenceLink text linkId) meta         = case M.lookup linkId (references meta) of
                                                        Just (link, title) -> hLink text link title
                                                        Nothing            -> hLink text "" Nothing
