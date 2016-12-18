@@ -67,7 +67,7 @@ pHtmlBlock = P.try $ do
 
 ----- Html Block -----
 
------ HorizontalRule -----
+----- Horizontal rule -----
 
 -- | Parse a horizontal rule. Accept three kinds of symbols ('-', '*', and '_').
 pHorizontalRule = P.try $ P.choice [pBorder '-', pBorder '*', pBorder '_']
@@ -78,13 +78,13 @@ pBorder char = P.try $ do
   guard $ length chars >= 3
   return HorizontalRule
 
------ Horizontal Rule -----
+----- Horizontal rule -----
 
 ----- List -----
 
--- | Parse a list. Three kinds of symbols('-', '*', and '+') are processed as unordered lists.
--- List items can be processed as paragraphs if each item is separated by a blankline.
--- One item can consist of multiple paragraphs.
+-- | Parse a list. Three kinds of symbols ('-', '*', and '+') can be handled as items of unordered lists.
+-- List items can be converted to paragraphs if each one is separated by blanklines.
+-- An item can consist of multiple paragraphs.
 pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
 
 pListIndent = P.try (P.count 4 (P.char ' ')) <|> P.string "\t"
@@ -164,7 +164,7 @@ pReference = P.try $ do
 
 ----- Reference -----
 
------ Code Block -----
+----- Code block -----
 
 -- | Parse a code block. Escape any '<', '>', '"', '&' characters inside blocks. FIXME
 pCodeBlock = P.try $ do
@@ -174,9 +174,9 @@ pCodeBlock = P.try $ do
   blanklinesBetweenBlock
   return $ CodeBlock xs
 
------ Code Block -----
+----- Code block -----
 
------ BlockQuote -----
+----- Block quote -----
 
 -- | Parse a blockquote. Blockquotes can contain other kinds of blocks including blockquotes.
 pBlockQuote = P.try $ do
@@ -198,7 +198,7 @@ pBlockQuote = P.try $ do
   when (level > 0) (P.modifyState (\context -> context { isLastNewLineQuoted = True }))
   return $ BlockQuote (firstBlock : followingBlocks)
 
------ BlockQuote -----
+----- Block quote -----
 
 ----- Paragraph -----
 
@@ -230,23 +230,23 @@ instance ReadMd Inline where
                     ]
            <?> "inline"
 
------ Line Break -----
+----- Line break -----
 
 -- | Parse more than two spaces at the end of line.
 pLineBreak = P.try $ do
   P.count 2 (P.char ' ') >> blankline
   return LineBreak
 
------ Line Break -----
+----- Line break -----
 
------ Soft Break -----
+----- Soft break -----
 
 -- | Parse soft break('\n')
 pSoftBreak = P.try $ do
   blankline >> skipSpaces >> P.notFollowedBy P.newline
   return SoftBreak
 
------ Soft Break -----
+----- Soft break -----
 
 ----- Space -----
 
@@ -397,12 +397,12 @@ functions to handle conversion of markdown
 -- | Convert markdown to document.
 readMarkdown :: String -> Document
 readMarkdown input = case P.runParser parser defContext "" input of
-                       Left  e -> error (show e) -- FIXME
+                       Left  e -> error (show e)
                        Right s -> s
 
 -- | Convert document to html.
 writeMarkdown :: Document -> String
-writeMarkdown doc = writeMd doc (MetaData M.empty) -- FIXME
+writeMarkdown doc = writeMd doc (MetaData M.empty)
 
 -- | Parse and convert markdown to html.
 parseMarkdown :: String -> String
