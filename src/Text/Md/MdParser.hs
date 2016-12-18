@@ -24,6 +24,10 @@ instance ReadMd Document where
               meta   <- metadata <$> P.getState
               return $ Document blocks meta
 
+{-
+Block elements
+-}
+
 instance ReadMd Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
@@ -36,11 +40,15 @@ instance ReadMd Block where
                     ]
            <?> "block"
 
+-- | Parse newlines between blocks. Expect more than one newlines.
 blanklineBetweenBlock  = blankline *> P.many (P.try blankline)
+-- | Parse newlines between blocks. Expect more than two newlines.
 blanklinesBetweenBlock = blankline *> blankline *> P.many (P.try blankline)
 
 ----- Header -----
 
+-- | Parse a header.
+-- Accept only the 'Atx' form without closing hashes, not the 'Setext' form.
 pHeader = P.try $ do
   level <- length <$> P.many1 (P.char '#')
   skipSpaces
@@ -52,7 +60,7 @@ pHeader = P.try $ do
 
 ----- Html Block -----
 
--- | Parse a html block. Text inside html tags are escaped, but markdown literals are not active.
+-- | Parse a html block. Text inside html tags are escaped, but markdown literals are not processed.
 pHtmlBlock = P.try $ do
   let htmlParseContext = HtmlParseContext pStrWithHtmlEscape
   pBlockElement htmlParseContext <* skipSpaces <* blanklinesBetweenBlock
@@ -61,6 +69,7 @@ pHtmlBlock = P.try $ do
 
 ----- HorizontalRule -----
 
+-- | Parse a horizontal rule. Accept three kinds of symbols ('-', '*', and '_').
 pHorizontalRule = P.try $ P.choice [pBorder '-', pBorder '*', pBorder '_']
 
 pBorder char = P.try $ do
@@ -73,6 +82,9 @@ pBorder char = P.try $ do
 
 ----- List -----
 
+-- | Parse a list. Three kinds of symbols('-', '*', and '+') are processed as unordered lists.
+-- List items can be processed as paragraphs if each item is separated by a blankline.
+-- One item can consist of multiple paragraphs.
 pListBlock = P.try $ P.choice [pList '-', pList '*', pList '+']
 
 pListIndent = P.try (P.count 4 (P.char ' ')) <|> P.string "\t"
@@ -136,6 +148,7 @@ addRef (refId, refLink, refTitle) state = state { metadata = newMeta }
         originalRefs = references . metadata $ state
         newRefs      = M.insert refId (refLink, refTitle) originalRefs
 
+-- | Parse a pair or label and link for reference links.
 pReference = P.try $ do
   let pOneRef = do refId <- pEnclosed "[" "]"
                    P.char ':'
@@ -153,6 +166,7 @@ pReference = P.try $ do
 
 ----- Code Block -----
 
+-- | Parse a code block. Escape any '<', '>', '"', '&' characters inside blocks. FIXME
 pCodeBlock = P.try $ do
   P.string "```" >> newlineQuote
   xs <- P.many (P.notFollowedBy (newlineQuote >> P.string "```") >> pStrWithHtmlEscape)
@@ -164,6 +178,7 @@ pCodeBlock = P.try $ do
 
 ----- BlockQuote -----
 
+-- | Parse a blockquote. Blockquotes can contain other kinds of blocks including blockquotes.
 pBlockQuote = P.try $ do
   let plusQuoteLevel context = context { quoteLevel = quoteLevel context + 1 }
       minusQuoteLevel context = context { quoteLevel = quoteLevel context - 1 }
@@ -187,13 +202,18 @@ pBlockQuote = P.try $ do
 
 ----- Paragraph -----
 
+-- | Parse a paragraph.
+-- All blocks which are not parsed as other kinds of blocks will be handled as paragraphs.
 pParagraph = P.try $ do
-  -- inlines <- P.many1 (P.notFollowedBy blanklines >> parser)
   inlines <- P.many1 parser
   blanklinesBetweenBlock
   return $ Paragraph inlines
 
 ----- Paragraph -----
+
+{-
+Inline elements
+-}
 
 instance ReadMd Inline where
   parser = P.choice [ pLineBreak
@@ -212,6 +232,7 @@ instance ReadMd Inline where
 
 ----- Line Break -----
 
+-- | Parse more than two spaces at the end of line.
 pLineBreak = P.try $ do
   P.count 2 (P.char ' ') >> blankline
   return LineBreak
@@ -227,10 +248,19 @@ pSoftBreak = P.try $ do
 
 ----- Soft Break -----
 
+----- Space -----
+
+-- | Parse more than one spaces and treats as only one space.
 pSpace = P.try $ do
   spaceChar >> skipSpaces
   return Space
 
+----- Space -----
+
+----- Strong -----
+
+-- FIXME: Should parse emphasis as well as strong.
+-- | Parse a strong framed by two '*' or '_'.
 pStrong = P.try $ do
   P.string "**"
   -- inlines <- P.many1 parser
@@ -238,6 +268,11 @@ pStrong = P.try $ do
   P.string "**"
   return $ Strong inlines
 
+----- Strong -----
+
+----- Link -----
+
+-- | Parse a inline link such as '[foo](https://foobar.com  "foo")'.
 pInlineLink = P.try $ do
   let pText         = P.many1 (P.notFollowedBy (P.char ']') >> P.anyChar)
       pLinkAndTitle = do text <- P.many1 (P.notFollowedBy (P.oneOf " )") >> P.anyChar)
@@ -248,6 +283,8 @@ pInlineLink = P.try $ do
   (link, title) <- P.between (P.char '(') (P.char ')') pLinkAndTitle
   return $ InlineLink text link title
 
+-- | Parse a reference link such as '[foo][1]'.
+-- There must be a corresponding link with the label anywhere in the document.
 pReferenceLink = P.try $ do
   text  <- pEnclosed "[" "]"
   P.optional spaceChar
@@ -261,24 +298,44 @@ pEnclosedP begin end = P.between pBegin pEnd
   where pBegin = P.string begin
         pEnd   = P.string end
 
+----- Link -----
+
+----- Str -----
+
+-- | Parse a string consisting of any alphabets and digits.
 pStr = P.try $ do
   str <- P.many1 P.alphaNum
   return $ Str str
 
+-- | Parse a string. Accept any marks as well as alphanums and perform html-escaping.
 pStrWithHtmlEscape = P.try pHtmlEscape <|> P.try pStr <|> P.try pNewlineQuote <|> pSingleStr
   where pNewlineQuote = newlineQuote >>= (\x -> return $ Str [x])
         pSingleStr    = P.anyChar >>= (\x -> return $ Str [x])
 
+----- Str -----
+
+----- Inline code -----
+
+-- | Parse a inline code.
 pInlineCode = P.try $ do
   start <- P.many1 $ P.try (P.char '`')
   codes <- P.manyTill pStrWithHtmlEscape (P.try (P.string start))
   return $ InlineCode codes
+
+----- Inline code -----
+
+----- Inline html -----
 
 -- | Parse inline html. Inline markdown literals and html escaping are active.
 pInlineHtml = P.try $ do
   let context = HtmlParseContext parser :: HtmlParseContext Inline
   pInlineElement context
 
+----- Inline html -----
+
+----- Str with marks -----
+
+-- | Parse a mark. Escape markdown literals if necssary.
 pMark = P.try $ do
   P.notFollowedBy $ P.choice [spaceChar, blankline]
   let toStr = flip (:) []
@@ -287,6 +344,12 @@ pMark = P.try $ do
   return $ Str str
 
 mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!']
+
+----- Str with marks -----
+
+{-
+Implementation of WriteMd
+-}
 
 instance WriteMd Document where
   writeMd (Document blocks meta) _ = "<div>" ++ concatMap (`writeMd` meta) blocks ++ "</div>"
@@ -327,14 +390,20 @@ instance WriteMd Inline where
   writeMd (Str str) meta                           = str
   writeMd NullL meta                               = ""
 
+{-
+functions to handle conversion of markdown
+-}
+
+-- | Convert markdown to document.
 readMarkdown :: String -> Document
 readMarkdown input = case P.runParser parser defContext "" input of
                        Left  e -> error (show e) -- FIXME
                        Right s -> s
 
+-- | Convert document to html.
 writeMarkdown :: Document -> String
 writeMarkdown doc = writeMd doc (MetaData M.empty) -- FIXME
 
--- | Parse and convert markdown to html
+-- | Parse and convert markdown to html.
 parseMarkdown :: String -> String
 parseMarkdown = writeMarkdown . readMarkdown
