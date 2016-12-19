@@ -362,41 +362,40 @@ Implementation of WriteMd
 -}
 
 instance WriteMd Document where
-  writeMd (Document blocks meta) _ = "<div>" ++ concatMapMd meta blocks ++ "</div>"
+  writeMd (Document blocks meta) _                 = hDiv $ concatMapMd meta blocks
 
 instance WriteMd Block where
-  writeMd (Header level inlines) meta = "<h" ++ show level ++ ">" ++ concatMapMd meta inlines ++ "</h" ++ show level ++ ">"
-  writeMd (BlockHtml inlines) meta        = concatMapMd meta inlines
-  writeMd (List item@(ListLineItem {})) meta = toStrL item
+  writeMd (Header level inlines) meta              = hHead level $ concatMapMd meta inlines
+  writeMd (BlockHtml inlines) meta                 = concatMapMd meta inlines
+  writeMd (List item@(ListLineItem {})) meta       = toStrL item
     where toStrL node = toLinesL node
           toLinesL node@(ListLineItem 0 _ cs) = "<ul>" ++ concatMap toLinesL cs ++ "</ul>"
           toLinesL node@(ListLineItem l v []) = "<li>" ++ toLineL node ++ "</li>"
           toLinesL node@(ListLineItem l v cs) = "<li>" ++ toLineL node ++ "<ul>" ++ concatMap toLinesL cs ++ "</ul>" ++ "</li>"
           toLineL  node@(ListLineItem l v cs) = concatMapMd meta v
-  writeMd (List item@(ListParaItem {})) meta = toStrP item
+  writeMd (List item@(ListParaItem {})) meta       = toStrP item
     where toStrP node = toLinesP node
           toLinesP node@(ListParaItem 0 _ cs) = "<ul>" ++ concatMap toLinesP cs ++ "</ul>"
           toLinesP node@(ListParaItem l v []) = "<li>" ++ toLineP node ++ "</li>"
           toLinesP node@(ListParaItem l v cs) = "<li>" ++ toLineP node ++ "<ul>" ++ concatMap toLinesP cs ++ "</ul>" ++ "</li>"
           toLineP  node@(ListParaItem l v cs) = concatMapMd meta v
-  writeMd HorizontalRule meta         = "<hr />"
-  writeMd (CodeBlock inlines) meta    = "<pre><code>" ++ concatMapMd meta inlines ++ "</code></pre>"
-  writeMd (BlockQuote blocks) meta    = "<blockquote>" ++ concatMapMd meta blocks ++ "</blockquote>"
-  writeMd (Paragraph inlines) meta    = "<p>" ++ concatMapMd meta inlines ++ "</p>"
-  writeMd NullB meta                  = ""
+  writeMd HorizontalRule meta                      = hBorder
+  writeMd (CodeBlock inlines) meta                 = hCodeBlock $ concatMapMd meta inlines
+  writeMd (BlockQuote blocks) meta                 = hQuote $ concatMapMd meta blocks
+  writeMd (Paragraph inlines) meta                 = hParagraph $ concatMapMd meta inlines
+  writeMd NullB meta                               = ""
 
 instance WriteMd Inline where
-  writeMd LineBreak meta                           = "<br />"
+  writeMd LineBreak meta                           = hLineBreak
   writeMd SoftBreak meta                           = " "
   writeMd Space meta                               = " "
-  writeMd (Strong inlines) meta                    = "<strong>" ++ concatMapMd meta inlines ++ "</strong>"
-  writeMd (Emphasis inlines) meta                  = "<em>" ++ concatMapMd meta inlines ++ "</em>"
+  writeMd (Strong inlines) meta                    = hStrong $ concatMapMd meta inlines
+  writeMd (Emphasis inlines) meta                  = hEmphasis $ concatMapMd meta inlines
   writeMd (ReferenceLink text linkId) meta         = case M.lookup linkId (references meta) of
                                                        Just (link, title) -> hLink text link title
                                                        Nothing            -> hLink text "" Nothing
   writeMd (InlineLink text link title) meta = hLink text link title
-  writeMd (InlineCode inlines) meta                = let text = trim $ concatMapMd meta inlines
-                                                     in "<code>" ++ text ++ "</code>"
+  writeMd (InlineCode inlines) meta                = hCode $ trim $ concatMapMd meta inlines
   writeMd (InlineHtml inlines) meta                = concatMapMd meta inlines
   writeMd (Str str) meta                           = str
   writeMd NullL meta                               = ""
