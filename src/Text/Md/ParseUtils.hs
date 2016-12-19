@@ -20,7 +20,7 @@ skipSpaces :: Stream s m Char => ParsecT s ParseContext m ()
 skipSpaces = P.skipMany spaceChar
 
 -- | Parse a newline.
--- This method also handles quote marks at the beginning of lines and update the parser state.
+-- This function also handles quote marks at the beginning of lines and update the parser state.
 newlineQuote :: Stream s m Char => ParsecT s ParseContext m Char
 newlineQuote = do
   c <- lineStart <$> P.getState
