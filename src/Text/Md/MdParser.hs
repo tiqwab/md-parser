@@ -19,7 +19,7 @@ import           Text.Parsec                   (Parsec, ParsecT, Stream, (<?>),
 import qualified Text.Parsec                   as P
 import qualified Text.ParserCombinators.Parsec as P hiding (runParser, try)
 
-instance ReadMd Document where
+instance ReadMarkDown Document where
   parser = do blocks <- P.manyTill parser P.eof
               meta   <- metadata <$> P.getState
               return $ Document blocks meta
@@ -28,7 +28,7 @@ instance ReadMd Document where
 Block elements
 -}
 
-instance ReadMd Block where
+instance ReadMarkDown Block where
   parser = P.choice [ pHeader
                     , pHtmlBlock
                     , pHorizontalRule
@@ -215,7 +215,7 @@ pParagraph = P.try $ do
 Inline elements
 -}
 
-instance ReadMd Inline where
+instance ReadMarkDown Inline where
   parser = P.choice [ pLineBreak
                     , pSoftBreak
                     , pSpace
@@ -361,68 +361,68 @@ mdSymbols = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '
 Implementation of WriteMd
 -}
 
-instance WriteMd Document where
-  writeMd (Document blocks meta) _                 = case doesFormatHtml meta of
+instance WriteMarkDown Document where
+  writeMarkDown (Document blocks meta) _                 = case doesFormatHtml meta of
                                                        True  -> hDiv True  $ concatMapMdFormat meta blocks
                                                        False -> hDiv False $ concatMapMd meta blocks
 
-instance WriteMd Block where
-  writeMd (Header level inlines) meta              = hHead level $ concatMapMd meta inlines
-  writeMd (BlockHtml inlines) meta                 = concatMapMd meta inlines
-  writeMd (List item@(ListLineItem {})) meta       = toStrL item
+instance WriteMarkDown Block where
+  writeMarkDown (Header level inlines) meta              = hHead level $ concatMapMd meta inlines
+  writeMarkDown (BlockHtml inlines) meta                 = concatMapMd meta inlines
+  writeMarkDown (List item@(ListLineItem {})) meta       = toStrL item
     where toStrL node = toLinesL node
           toLinesL node@(ListLineItem 0 _ cs) = "<ul>" ++ concatMap toLinesL cs ++ "</ul>"
           toLinesL node@(ListLineItem l v []) = "<li>" ++ toLineL node ++ "</li>"
           toLinesL node@(ListLineItem l v cs) = "<li>" ++ toLineL node ++ "<ul>" ++ concatMap toLinesL cs ++ "</ul>" ++ "</li>"
           toLineL  node@(ListLineItem l v cs) = concatMapMd meta v
-  writeMd (List item@(ListParaItem {})) meta       = toStrP item
+  writeMarkDown (List item@(ListParaItem {})) meta       = toStrP item
     where toStrP node = toLinesP node
           toLinesP node@(ListParaItem 0 _ cs) = "<ul>" ++ concatMap toLinesP cs ++ "</ul>"
           toLinesP node@(ListParaItem l v []) = "<li>" ++ toLineP node ++ "</li>"
           toLinesP node@(ListParaItem l v cs) = "<li>" ++ toLineP node ++ "<ul>" ++ concatMap toLinesP cs ++ "</ul>" ++ "</li>"
           toLineP  node@(ListParaItem l v cs) = concatMapMd meta v
-  writeMd HorizontalRule meta                      = hBorder
-  writeMd (CodeBlock inlines) meta                 = hCodeBlock $ concatMapMd meta inlines
-  writeMd (BlockQuote blocks) meta                 = hQuote $ concatMapMd meta blocks
-  writeMd (Paragraph inlines) meta                 = hParagraph $ concatMapMd meta inlines
-  writeMd NullB meta                               = ""
+  writeMarkDown HorizontalRule meta                      = hBorder
+  writeMarkDown (CodeBlock inlines) meta                 = hCodeBlock $ concatMapMd meta inlines
+  writeMarkDown (BlockQuote blocks) meta                 = hQuote $ concatMapMd meta blocks
+  writeMarkDown (Paragraph inlines) meta                 = hParagraph $ concatMapMd meta inlines
+  writeMarkDown NullB meta                               = ""
 
-instance WriteMd Inline where
-  writeMd LineBreak meta                           = hLineBreak
-  writeMd SoftBreak meta                           = " "
-  writeMd Space meta                               = " "
-  writeMd (Strong inlines) meta                    = hStrong $ concatMapMd meta inlines
-  writeMd (Emphasis inlines) meta                  = hEmphasis $ concatMapMd meta inlines
-  writeMd (ReferenceLink text linkId) meta         = case M.lookup linkId (references meta) of
+instance WriteMarkDown Inline where
+  writeMarkDown LineBreak meta                           = hLineBreak
+  writeMarkDown SoftBreak meta                           = " "
+  writeMarkDown Space meta                               = " "
+  writeMarkDown (Strong inlines) meta                    = hStrong $ concatMapMd meta inlines
+  writeMarkDown (Emphasis inlines) meta                  = hEmphasis $ concatMapMd meta inlines
+  writeMarkDown (ReferenceLink text linkId) meta         = case M.lookup linkId (references meta) of
                                                        Just (link, title) -> hLink text link title
                                                        Nothing            -> hLink text "" Nothing
-  writeMd (InlineLink text link title) meta = hLink text link title
-  writeMd (InlineCode inlines) meta                = hCode $ trim $ concatMapMd meta inlines
-  writeMd (InlineHtml inlines) meta                = concatMapMd meta inlines
-  writeMd (Str str) meta                           = str
-  writeMd NullL meta                               = ""
+  writeMarkDown (InlineLink text link title) meta = hLink text link title
+  writeMarkDown (InlineCode inlines) meta                = hCode $ trim $ concatMapMd meta inlines
+  writeMarkDown (InlineHtml inlines) meta                = concatMapMd meta inlines
+  writeMarkDown (Str str) meta                           = str
+  writeMarkDown NullL meta                               = ""
 
-concatMapMd meta wms = concatMap (`writeMd` meta) wms
-concatMapMdFormat meta wms = concatMap (\x -> writeMd x meta ++ "\n") wms
+concatMapMd meta wms = concatMap (`writeMarkDown` meta) wms
+concatMapMdFormat meta wms = concatMap (\x -> writeMarkDown x meta ++ "\n") wms
 
 {-
 functions to handle conversion of markdown
 -}
 
 -- | Convert markdown to document.
-readMarkdown :: ParseContext -> String -> Document
-readMarkdown context md = case P.runParser parser context "" md of
+readMd :: ParseContext -> String -> Document
+readMd context md = case P.runParser parser context "" md of
                        Left  e -> error (show e)
                        Right s -> s
 
 -- | Convert document to html.
-writeMarkdown :: Document -> String
-writeMarkdown doc@(Document _ meta) = writeMd doc meta
+writeMd :: Document -> String
+writeMd doc@(Document _ meta) = writeMarkDown doc meta
 
 -- | Parse and convert markdown to html.
-parseMarkdown :: String -> String
-parseMarkdown = writeMarkdown . readMarkdown defContext
+parseMd :: String -> String
+parseMd = writeMd . readMd defContext
 
 -- | Parse and convert markdown to html with the passed context.
-parseMarkdownWith :: ParseContext -> String -> String
-parseMarkdownWith context md = writeMarkdown $ readMarkdown context md
+parseMdWith :: ParseContext -> String -> String
+parseMdWith context md = writeMd $ readMd context md

@@ -69,9 +69,9 @@ data Inline = LineBreak
               deriving (Show, Eq)
 
 -- | Can be read as markdown
-class ReadMd a where
+class ReadMarkDown a where
   parser :: Parsec String ParseContext a
 
 -- | Can be written to html codes
-class WriteMd a where
-  writeMd :: a -> MetaData -> String
+class WriteMarkDown a where
+  writeMarkDown :: a -> MetaData -> String
