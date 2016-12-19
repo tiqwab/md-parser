@@ -362,7 +362,9 @@ Implementation of WriteMd
 -}
 
 instance WriteMd Document where
-  writeMd (Document blocks meta) _                 = hDiv $ concatMapMd meta blocks
+  writeMd (Document blocks meta) _                 = case doesFormatHtml meta of
+                                                       True  -> hDiv True  $ concatMapMdFormat meta blocks
+                                                       False -> hDiv False $ concatMapMd meta blocks
 
 instance WriteMd Block where
   writeMd (Header level inlines) meta              = hHead level $ concatMapMd meta inlines
@@ -401,21 +403,26 @@ instance WriteMd Inline where
   writeMd NullL meta                               = ""
 
 concatMapMd meta wms = concatMap (`writeMd` meta) wms
+concatMapMdFormat meta wms = concatMap (\x -> writeMd x meta ++ "\n") wms
 
 {-
 functions to handle conversion of markdown
 -}
 
 -- | Convert markdown to document.
-readMarkdown :: String -> Document
-readMarkdown input = case P.runParser parser defContext "" input of
+readMarkdown :: ParseContext -> String -> Document
+readMarkdown context md = case P.runParser parser context "" md of
                        Left  e -> error (show e)
                        Right s -> s
 
 -- | Convert document to html.
 writeMarkdown :: Document -> String
-writeMarkdown doc = writeMd doc (MetaData M.empty)
+writeMarkdown doc@(Document _ meta) = writeMd doc meta
 
 -- | Parse and convert markdown to html.
 parseMarkdown :: String -> String
-parseMarkdown = writeMarkdown . readMarkdown
+parseMarkdown = writeMarkdown . readMarkdown defContext
+
+-- | Parse and convert markdown to html with the passed context.
+parseMarkdownWith :: ParseContext -> String -> String
+parseMarkdownWith context md = writeMarkdown $ readMarkdown context md

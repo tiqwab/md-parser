@@ -19,7 +19,7 @@ data ParseContext = ParseContext { metadata :: MetaData -- meta data of document
                                  }
   deriving (Show, Eq)
 
-defContext = ParseContext { metadata = MetaData M.empty
+defContext = ParseContext { metadata = defMetaData
                           , lineStart = '\0'
                           , isLastNewLineQuoted = False
                           , quoteLevel = 0
@@ -29,8 +29,13 @@ type RefId    = String
 type RefLink  = String
 type RefTitle = Maybe String
 data MetaData = MetaData { references :: M.Map RefId (RefLink, RefTitle) -- info of reference links
+                         , doesFormatHtml :: Bool -- should format a converted html?
                          }
   deriving (Show, Eq)
+
+defMetaData = MetaData { references = M.empty
+                       , doesFormatHtml = False
+                       }
 
 -- | Tree node of List. List block consists of ListItems.
 -- level, content. children

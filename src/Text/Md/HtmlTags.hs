@@ -21,7 +21,8 @@ import Data.Char
 trim :: String -> String
 trim str = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace str
 
-hDiv text = "<div>" ++ text ++ "</div>"
+hDiv True  text = "<div>" ++ "\n" ++ text ++ "</div>"
+hDiv False text = "<div>" ++ text ++ "</div>"
 
 hHead level text = "<h" ++ show level ++ ">" ++ text ++ "</h" ++ show level ++ ">"
 
