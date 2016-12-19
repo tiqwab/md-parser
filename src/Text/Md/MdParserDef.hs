@@ -38,7 +38,7 @@ data ListItem = ListLineItem Int [Inline] [ListItem]
               | ListParaItem Int [Block] [ListItem]
   deriving (Show, Eq)
 
--- TODO: list, blockquotes
+-- | Data representing html block elements
 data Block = Header Int [Inline]
            | BlockHtml [Inline]
            | HorizontalRule
@@ -49,6 +49,7 @@ data Block = Header Int [Inline]
            | NullB
            deriving (Show, Eq)
 
+-- | Data representing html inline elements
 data Inline = LineBreak
             | SoftBreak
             | Space
