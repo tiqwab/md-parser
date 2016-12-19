@@ -5,6 +5,7 @@ module Text.Md.MdParser (
     readMd
   , writeMd
   , parseMd
+  , parseMdFormat
   , parseMdWith
 )
 where
@@ -408,7 +409,9 @@ instance WriteMarkDown Inline where
   writeMarkDown NullL meta                               = ""
 
 concatMapMd meta wms = concatMap (`writeMarkDown` meta) wms
-concatMapMdFormat meta wms = concatMap (\x -> writeMarkDown x meta ++ "\n") wms
+concatMapMdFormat meta []     = []
+concatMapMdFormat meta [w]    = writeMarkDown w meta
+concatMapMdFormat meta (w:ws) = writeMarkDown w meta ++ "\n" ++ concatMapMdFormat meta ws
 
 {-
 functions to handle conversion of markdown
@@ -427,6 +430,11 @@ writeMd doc@(Document _ meta) = writeMarkDown doc meta
 -- | Parse and convert markdown to html.
 parseMd :: String -> String
 parseMd = writeMd . readMd defContext
+
+-- | Parse and convert markdown to formatted html.
+parseMdFormat :: String -> String
+parseMdFormat md = writeMd $ readMd context md
+  where context = defContext { metadata = defMetaData { doesFormatHtml = True } }
 
 -- | Parse and convert markdown to html with the passed context.
 parseMdWith :: ParseContext -> String -> String

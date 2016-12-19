@@ -21,31 +21,31 @@ import Data.Char
 trim :: String -> String
 trim str = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace str
 
-hDiv True  text = "<div>" ++ "\n" ++ text ++ "</div>"
-hDiv False text = "<div>" ++ text ++ "</div>"
+createTag True  name text = "<" ++ name ++ ">" ++ "\n" ++ text ++ "\n" ++ "</" ++ name ++ ">" -- nsert newline between tag and inner text.
+createTag False name text = "<" ++ name ++ ">" ++ text ++ "</" ++ name ++ ">"
 
-hHead level text = "<h" ++ show level ++ ">" ++ text ++ "</h" ++ show level ++ ">"
+hDiv True  text = createTag True "div" text
+hDiv False text = createTag False "div" text
 
-hList items = start ++ concatMap encloseItem items ++ end
-  where start            = "<ul>"
-        end              = "</ul>"
-        encloseItem item = "<li>" ++ item ++ "</li>"
+hHead level text = createTag False ("h" ++ show level) text
+
+hList items = createTag False "ul" $ concatMap (createTag False "li") items
 
 hBorder = "<hr />"
 
-hCodeBlock text = "<pre><code>" ++ text ++ "</code></pre>"
+hCodeBlock text = createTag False "pre" $ createTag False "code" text
 
-hQuote text = "<blockquote>" ++ text ++ "</blockquote>"
+hQuote text = createTag False "blockquote" text
 
-hParagraph text = "<p>" ++ text ++ "</p>"
+hParagraph text = createTag False "p" text
 
 hLineBreak = "<br />"
 
-hStrong text = "<strong>" ++ text ++ "</strong>"
+hStrong text = createTag False "strong" text
 
-hEmphasis text = "<em>" ++ text ++ "</em>"
+hEmphasis text = createTag False "em" text
 
-hCode text = "<code>" ++ text ++ "</code>"
+hCode text = createTag False "code" text
 
 hLink text link (Just title) = "<a href=\"" ++ link ++ "\" title=\"" ++ title ++ "\">" ++ text ++ "</a>"
 hLink text link Nothing      = "<a href=\"" ++ link ++ "\">" ++ text ++ "</a>"
