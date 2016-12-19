@@ -1,7 +1,18 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Text.Md.MdParserDef
+module Text.Md.MdParserDef (
+    Document (..)
+  , ParseContext (..)
+  , defContext
+  , MetaData (..)
+  , defMetaData
+  , ListItem (..)
+  , Block (..)
+  , Inline (..)
+  , ReadMarkDown (..)
+  , WriteMarkDown (..)
+)
 where
 
 import           Text.Parsec (Parsec, ParsecT, Stream)

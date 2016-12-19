@@ -1,6 +1,12 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Text.Md.ParseUtils
+module Text.Md.ParseUtils (
+    spaceChar
+  , skipSpaces
+  , newlineQuote
+  , blankline
+  , blanklines
+)
 where
 
 import Data.Maybe

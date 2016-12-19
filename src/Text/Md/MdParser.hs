@@ -1,7 +1,12 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Text.Md.MdParser
+module Text.Md.MdParser (
+    readMd
+  , writeMd
+  , parseMd
+  , parseMdWith
+)
 where
 
 import           Control.Monad

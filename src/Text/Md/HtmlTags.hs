@@ -1,17 +1,17 @@
 module Text.Md.HtmlTags (
-  trim,
-  hDiv,
-  hHead,
-  hList,
-  hBorder,
-  hCodeBlock,
-  hQuote,
-  hParagraph,
-  hLineBreak,
-  hStrong,
-  hEmphasis,
-  hCode,
-  hLink
+    trim
+  , hDiv
+  , hHead
+  , hList
+  , hBorder
+  , hCodeBlock
+  , hQuote
+  , hParagraph
+  , hLineBreak
+  , hStrong
+  , hEmphasis
+  , hCode
+  , hLink
 )
 where
 
