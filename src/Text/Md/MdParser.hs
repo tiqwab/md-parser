@@ -369,8 +369,9 @@ Implementation of WriteMd
 
 instance WriteMarkDown Document where
   writeMarkDown (Document blocks meta) _                 = case doesFormatHtml meta of
-                                                             True  -> hDiv True  $ concatMapMdFormat meta blocks
-                                                             False -> hDiv False $ concatMapMd meta blocks
+                                                             True  -> hDiv True  $ concatMapMdFormat meta blocksNoNull
+                                                             False -> hDiv False $ concatMapMd meta blocksNoNull
+    where blocksNoNull = filter (NullB /=) blocks
 
 instance WriteMarkDown Block where
   writeMarkDown (Header level inlines) meta              = hHead level $ concatMapMd meta inlines
