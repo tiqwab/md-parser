@@ -117,7 +117,7 @@ pList char = P.try $ do
            <|> pListParaItem char
   firstItem <- pItem
   case firstItem of
-    ListLineItem {} -> do items <- P.many (pListLineItem char <* P.notFollowedBy (blankline *> P.char char))
+    ListLineItem {} -> do items <- P.many (pListLineItem char)
                           P.optional blankline
                           return $ List (toListL (firstItem:items))
     ListParaItem {} -> do items <- P.many (pListParaItem char)
