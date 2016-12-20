@@ -7,6 +7,9 @@ module Text.Md.MdParser (
   , parseMd
   , parseMdFormat
   , parseMdWith
+  , parseMdFile
+  , parseMdFileFormat
+  , parseMdFileWith
 )
 where
 
@@ -440,3 +443,22 @@ parseMdFormat md = writeMd $ readMd context md
 -- | Parse and convert markdown to html with the passed context.
 parseMdWith :: ParseContext -> String -> String
 parseMdWith context md = writeMd $ readMd context md
+
+-- | Parse and convert markdown to html. Accept a path to the markdown file.
+parseMdFile :: FilePath -> IO String
+parseMdFile path = do
+  content <- readFile path
+  return $ parseMd content
+
+-- | Parse and convert markdown to formatted html. Accept a path to the markdown file.
+parseMdFileFormat :: FilePath -> IO String
+parseMdFileFormat path = do
+  content <- readFile path
+  let context = defContext { metadata = defMetaData { doesFormatHtml = True } }
+  return $ writeMd $ readMd context content
+
+-- | Parse and convert markdown to html with the passed context. Accept a path to the markdown file
+parseMdFileWith :: ParseContext -> FilePath -> IO String
+parseMdFileWith context path = do
+  content <- readFile path
+  return $ writeMd $ readMd context content

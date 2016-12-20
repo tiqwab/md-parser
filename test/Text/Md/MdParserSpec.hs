@@ -129,3 +129,9 @@ spec = do
     it "escapes html" $ do
       parseMd "Is this escaped? \"5 > 2 && 5 < 2\"\n\n" `shouldBe` "<div><p>Is this escaped? &quot;5 &gt; 2 &amp;&amp; 5 &lt; 2&quot;</p></div>"
       parseMd "This is already escaped, &amp;, &lt;, &gt;, & &quot;\n\n" `shouldBe` "<div><p>This is already escaped, &amp;, &lt;, &gt;, &amp; &quot;</p></div>"
+
+  describe "parseMdFile" $ do
+    it "parses complex markdown" $ do
+      actual <- parseMdFileFormat "samples/sample.md"
+      expect <- readFile "samples/sample-expect.html"
+      actual `shouldBe` expect

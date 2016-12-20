@@ -21,7 +21,7 @@ import Data.Char
 trim :: String -> String
 trim str = reverse $ dropWhile isSpace $ reverse $ dropWhile isSpace str
 
-createTag True  name text = "<" ++ name ++ ">" ++ "\n" ++ text ++ "\n" ++ "</" ++ name ++ ">" -- nsert newline between tag and inner text.
+createTag True  name text = "<" ++ name ++ ">" ++ "\n" ++ text ++ "\n" ++ "</" ++ name ++ ">" ++ "\n" -- nsert newline between tag and inner text.
 createTag False name text = "<" ++ name ++ ">" ++ text ++ "</" ++ name ++ ">"
 
 hDiv True  text = createTag True "div" text
