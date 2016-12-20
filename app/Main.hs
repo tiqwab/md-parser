@@ -10,5 +10,5 @@ import qualified Text.Md.MdParser as MD
 main :: IO ()
 main = do
   markdown <- getContents
-  let html = MD.parseMd markdown
+  let html = MD.parseMdFormat markdown
   putStrLn html
