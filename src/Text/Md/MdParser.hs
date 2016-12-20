@@ -121,10 +121,10 @@ pList char = P.try $ do
   firstItem <- pItem
   case firstItem of
     ListLineItem {} -> do items <- P.many (pListLineItem char)
-                          P.optional blankline
+                          P.optional blanklines
                           return $ List (toListL (firstItem:items))
     ListParaItem {} -> do items <- P.many (pListParaItem char)
-                          P.optional blankline
+                          P.optional blanklines
                           return $ List (toListP (firstItem:items))
 
 pListLineItem char = P.try $ do
@@ -423,7 +423,7 @@ functions to handle conversion of markdown
 
 -- | Convert markdown to document.
 readMd :: ParseContext -> String -> Document
-readMd context md = case P.runParser parser context "" md of
+readMd context md = case P.runParser parser context "" (md ++ "\n\n") of -- dirty way to parse...
                        Left  e -> error (show e)
                        Right s -> s
 
